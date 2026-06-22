@@ -1,20 +1,25 @@
-import React from 'react';
-
-/*
- * RouteStepCard displays a single step in the navigation route.  It
- * includes the step number, a descriptive instruction, any note
- * associated with the edge and the estimated time for that leg of the
- * journey.
- */
-const RouteStepCard = ({ step, index }) => {
-  return (
-    <div className="card route-step">
-      <strong>Step {index}</strong>
-      <p>{step.instruction}</p>
-      {step.note && <p className="note">{step.note}</p>}
-      <p className="time">~{step.time} min</p>
-    </div>
-  );
+const iconForMode = {
+  walk: '🚶',
+  train: '🚆',
+  tram: '🚊',
+  shuttle: '🚌',
+  bus: '🚌',
+  transfer: '➡️',
 };
 
-export default RouteStepCard;
+export default function RouteStepCard({ step, index }) {
+  return (
+    <article className="step-card">
+      <div className="step-number">{index}</div>
+      <div className="step-content">
+        <div className="step-mode">
+          <span aria-hidden="true">{iconForMode[step.mode] || '➡️'}</span>
+          <strong>{step.modeLabel}</strong>
+        </div>
+        <p>{step.instruction}</p>
+        <small>Time: {step.timeLabel}</small>
+        {step.note && <em>{step.note}</em>}
+      </div>
+    </article>
+  );
+}

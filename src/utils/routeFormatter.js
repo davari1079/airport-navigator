@@ -1,110 +1,126 @@
-/*
- * Convert a list of edges into human‑readable instructions.  Each step
- * includes an instruction string, an estimated time and any notes.
- */
+const modeLabels = {
+  walk: 'Walk',
+  train: 'Train / people mover',
+  tram: 'Tram',
+  shuttle: 'Shuttle',
+  bus: 'Bus / shuttle',
+  transfer: 'Transfer',
+};
 
-/**
- * Convert a list of graph edges into human‑friendly route steps.  The function
- * merges consecutive segments that belong to the same transit system (e.g.
- * Skylink, AirTrain) when the traveller is expected to stay on through
- * intermediate stops.  Walking segments remain separate unless explicitly
- * marked mergeable.  Each returned step includes a plain‑English
- * instruction, the summed estimated time (or null if any segment lacks
- * an official time) and any contextual metadata.  A totalTime value is
- * returned to help upstream components decide whether a definitive
- * estimate can be shown.  If one or more steps have an unknown time the
- * overall totalTime will be null.
- *
- * The edges argument should already include properties such as
- * `mode`, `systemName`, `estimatedMinutes`, `frequency`,
- * `airsideOrLandside`, `instruction`, `sourceNote` and `canMergeWithSameSystem`.
- */
-export function formatRoute(edges) {
-  const merged = [];
-  let i = 0;
-  while (i < edges.length) {
-    const edge = edges[i];
-    // initialise aggregated step parameters
-    let from = edge.from;
-    let to = edge.to;
-    const mode = edge.mode;
-    // systemName may be provided on the edge or inferred from the note
-    const baseSystem = edge.systemName || edge.note || null;
-    let totalMinutes = 0;
-    let hasUnknown = false;
-    const intermediateStops = [];
-    // accumulate time for the first edge
-    if (edge.estimatedMinutes !== undefined && edge.estimatedMinutes !== null) {
-      totalMinutes += edge.estimatedMinutes;
-    } else {
-      hasUnknown = true;
+export function formatRoute(edges, nodeMap = {}) {
+  const steps = [];
+  let cursor = 0;
+
+  while (cursor < edges.length) {
+    const first = edges[cursor];
+    const group = [first];
+    let nextIndex = cursor + 1;
+
+    while (nextIndex < edges.length && shouldMerge(group[group.length - 1], edges[nextIndex])) {
+      group.push(edges[nextIndex]);
+      nextIndex += 1;
     }
-    // merge subsequent edges if they share the same mode and system and are
-    // marked as mergeable.  This allows a single instruction like
-    // “Take the Skylink from Terminal A to Terminal D. Stay on through B, C.”
-    let j = i + 1;
-    while (j < edges.length) {
-      const next = edges[j];
-      // check for same mode and systemName, and that both edges allow merging
-      const nextSystem = next.systemName || next.note || null;
-      if (
-        next.mode === mode &&
-        nextSystem === baseSystem &&
-        edge.canMergeWithSameSystem &&
-        next.canMergeWithSameSystem
-      ) {
-        // record the intermediate stop (the 'from' of the next edge)
-        intermediateStops.push(next.from);
-        if (next.estimatedMinutes !== undefined && next.estimatedMinutes !== null) {
-          totalMinutes += next.estimatedMinutes;
-        } else {
-          hasUnknown = true;
-        }
-        to = next.to;
-        j++;
-      } else {
-        break;
-      }
-    }
-    // Construct a user‑facing instruction.  Mode‑specific phrasing with
-    // intermediate stops if necessary.
-    let instruction = '';
-    if (mode === 'walk') {
-      instruction = `Walk from ${from} to ${to}`;
-    } else {
-      const sysLabel = baseSystem || mode;
-      instruction = `Take the ${sysLabel} from ${from} to ${to}`;
-      if (intermediateStops.length > 0) {
-        instruction += `. Stay on through ${intermediateStops.join(', ')}. Exit at ${to}.`;
-      }
-    }
-    merged.push({
-      from,
-      to,
-      mode,
-      systemName: baseSystem,
-      time: hasUnknown ? null : totalMinutes,
-      instruction,
-      note: edge.note || null,
-      frequency: edge.frequency || null,
-      airsideOrLandside: edge.airsideOrLandside || null,
-      sourceNote: edge.sourceNote || null,
-    });
-    i = j;
+
+    steps.push(formatStep(group, nodeMap));
+    cursor = nextIndex;
   }
-  // Determine total route time.  If any step lacks a time, return null.
-  let routeTime = 0;
-  let unknownFound = false;
-  merged.forEach((step) => {
-    if (step.time !== null && step.time !== undefined) {
-      routeTime += step.time;
-    } else {
-      unknownFound = true;
-    }
-  });
+
+  const hasUnknownTime = steps.some((step) => step.officialMinutes === null);
+  const totalMinutes = hasUnknownTime
+    ? null
+    : steps.reduce((sum, step) => sum + step.officialMinutes, 0);
+  const fallbackMinutes = steps.reduce((sum, step) => sum + step.estimatedMinutes, 0);
+
+  return { steps, totalMinutes, fallbackMinutes, hasUnknownTime };
+}
+
+function shouldMerge(previous, next) {
+  if (!previous.canMergeWithSameSystem || !next.canMergeWithSameSystem) return false;
+  if (previous.mode !== next.mode) return false;
+  if ((previous.systemName || '') !== (next.systemName || '')) return false;
+  if (previous.to !== next.from) return false;
+  return previous.mode !== 'walk';
+}
+
+function formatStep(group, nodeMap) {
+  const first = group[0];
+  const last = group[group.length - 1];
+  const from = labelFor(first.from, nodeMap);
+  const to = labelFor(last.to, nodeMap);
+  const officialKnown = group.every((edge) => typeof edge.officialMinutes === 'number');
+  const officialMinutes = officialKnown
+    ? group.reduce((sum, edge) => sum + edge.officialMinutes, 0)
+    : null;
+  const estimatedMinutes = group.reduce((sum, edge) => sum + getEstimatedMinutes(edge), 0);
+  const systemName = first.systemName || modeLabels[first.mode] || 'connection';
+  const intermediateStops = group.slice(1).map((edge) => labelFor(edge.from, nodeMap));
+  const notes = buildNotes(group);
+
   return {
-    steps: merged,
-    totalTime: unknownFound ? null : routeTime,
-    hasUnknownTime: unknownFound,
+    from: first.from,
+    to: last.to,
+    mode: first.mode,
+    modeLabel: first.systemName || modeLabels[first.mode] || 'Move',
+    systemName,
+    officialMinutes,
+    estimatedMinutes,
+    timeLabel: officialMinutes === null ? 'Official time not specified' : `${officialMinutes} minutes`,
+    instruction: buildInstruction({ first, last, from, to, systemName, intermediateStops, nodeMap }),
+    note: notes.join(' '),
+    airsideOrLandside: first.airsideOrLandside || null,
+    sourceConfidence: first.sourceConfidence || 'official_map_available_time_unspecified',
   };
+}
+
+function buildInstruction({ first, last, from, to, systemName, intermediateStops, nodeMap }) {
+  if (first.mode === 'walk' && first.instruction && first.from !== last.to) {
+    return replaceNodeIds(first.instruction, nodeMap);
+  }
+
+  if (first.mode === 'walk') {
+    return `Walk from ${from} to ${to}. Follow posted airport signs and confirm the route before moving.`;
+  }
+
+  let text = `Take the ${systemName} from ${from} to ${to}.`;
+  if (intermediateStops.length > 0) {
+    text += ` Stay on through ${formatStopList(intermediateStops)}. Exit at ${to}.`;
+  }
+  return text;
+}
+
+function buildNotes(group) {
+  const notes = [];
+  const first = group[0];
+  if (first.frequency) notes.push(`Frequency: ${first.frequency}.`);
+  if (first.operatingHours) notes.push(`Hours: ${first.operatingHours}.`);
+  if (first.airsideOrLandside) notes.push(`${capitalize(first.airsideOrLandside)} connection.`);
+  if (first.sourceNote) notes.push(first.sourceNote);
+  group.forEach((edge) => {
+    if (edge.note && !notes.includes(edge.note)) notes.push(edge.note);
+  });
+  return notes;
+}
+
+function labelFor(id, nodeMap) {
+  return nodeMap[id]?.label || id;
+}
+
+function getEstimatedMinutes(edge) {
+  if (typeof edge.estimatedMinutes === 'number') return edge.estimatedMinutes;
+  if (typeof edge.officialMinutes === 'number') return edge.officialMinutes;
+  return 8;
+}
+
+function formatStopList(stops) {
+  if (stops.length <= 1) return stops.join('');
+  if (stops.length === 2) return `${stops[0]} and ${stops[1]}`;
+  return `${stops.slice(0, -1).join(', ')}, and ${stops[stops.length - 1]}`;
+}
+
+function replaceNodeIds(text, nodeMap) {
+  return Object.values(nodeMap).reduce((output, node) => output.replaceAll(node.id, node.label), text);
+}
+
+function capitalize(value) {
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }

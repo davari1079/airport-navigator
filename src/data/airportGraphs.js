@@ -1,501 +1,337 @@
-/*
- * Updated airport graph data and airport list definitions.
- *
- * This module defines a richer set of metadata for each airport in
- * preparation for a more traveller‑friendly experience.  Each airport
- * includes descriptive fields (layoutSummary, routeNotes, etc.),
- * nodes representing terminals, concourses and key facilities, and
- * edges describing connections between those nodes.  For transit
- * systems such as the Plane Train, Skylink or AirTrain, edges are
- * annotated with systemName, frequency and merge hints to support
- * merged instructions via the route formatter.  Where official
- * sources do not specify a time, the estimatedMinutes field is
- * omitted or set to null.  The Dijkstra algorithm still requires a
- * numeric `time` value for pathfinding; in such cases a reasonable
- * default is provided to maintain connectivity without implying an
- * exact official duration.  Airports not yet implemented are marked
- * with `unsupported: true` so the UI can display a functional guide
- * message rather than a blank state.
- */
+const createNodeMap = (nodes) =>
+  nodes.reduce((map, node) => {
+    map[node.id] = node;
+    return map;
+  }, {});
 
-export const airportList = [
-  { code: 'ATL', name: 'Hartsfield–Jackson Atlanta International Airport' },
+const n = (id, label, shortLabel = label) => ({ id, label, shortLabel });
+
+const edge = (from, to, mode, estimatedMinutes, instruction, options = {}) => ({
+  from,
+  to,
+  mode,
+  estimatedMinutes,
+  officialMinutes: options.officialMinutes === undefined ? estimatedMinutes : options.officialMinutes,
+  systemName: options.systemName || null,
+  frequency: options.frequency || null,
+  operatingHours: options.operatingHours || null,
+  airsideOrLandside: options.airsideOrLandside || null,
+  instruction,
+  reverseInstruction: options.reverseInstruction || null,
+  note: options.note || null,
+  sourceNote: options.sourceNote || null,
+  sourceConfidence: options.sourceConfidence || 'official_map_available_time_unspecified',
+  canMergeWithSameSystem: Boolean(options.canMergeWithSameSystem),
+  bidirectional: options.bidirectional !== false,
+});
+
+const officialUnknown = {
+  officialMinutes: null,
+  sourceNote: 'Official travel time not specified by the extracted official source; app uses this only for routing order.',
+  sourceConfidence: 'official_map_available_time_unspecified',
+};
+
+const mapAirport = (airport) => ({
+  ...airport,
+  status: 'mapped',
+  nodeMap: createNodeMap(airport.nodes),
+});
+
+export const topAirports = [
+  { code: 'ATL', name: 'Hartsfield-Jackson Atlanta International Airport' },
   { code: 'LAX', name: 'Los Angeles International Airport' },
   { code: 'DFW', name: 'Dallas/Fort Worth International Airport' },
   { code: 'DEN', name: 'Denver International Airport' },
-  { code: 'ORD', name: 'Chicago O’Hare International Airport' },
+  { code: 'ORD', name: "Chicago O'Hare International Airport" },
   { code: 'JFK', name: 'New York John F. Kennedy International Airport' },
   { code: 'MCO', name: 'Orlando International Airport' },
   { code: 'LAS', name: 'Las Vegas Harry Reid International Airport' },
-  { code: 'CLT', name: 'Charlotte/Douglas International Airport' },
+  { code: 'CLT', name: 'Charlotte Douglas International Airport' },
   { code: 'MIA', name: 'Miami International Airport' },
-  { code: 'SEA', name: 'Seattle–Tacoma International Airport' },
+  { code: 'SEA', name: 'Seattle-Tacoma International Airport' },
   { code: 'EWR', name: 'Newark Liberty International Airport' },
   { code: 'SFO', name: 'San Francisco International Airport' },
   { code: 'PHX', name: 'Phoenix Sky Harbor International Airport' },
   { code: 'IAH', name: 'Houston George Bush Intercontinental Airport' },
   { code: 'BOS', name: 'Boston Logan International Airport' },
-  { code: 'FLL', name: 'Fort Lauderdale–Hollywood International Airport' },
-  { code: 'MSP', name: 'Minneapolis–Saint Paul International Airport' },
+  { code: 'FLL', name: 'Fort Lauderdale-Hollywood International Airport' },
+  { code: 'MSP', name: 'Minneapolis-Saint Paul International Airport' },
   { code: 'LGA', name: 'New York LaGuardia Airport' },
   { code: 'DTW', name: 'Detroit Metropolitan Wayne County Airport' },
 ];
 
-export const airportGraphs = {
-  /*
-   * ATL — Hartsfield–Jackson Atlanta International Airport
-   *
-   * Atlanta’s campus consists of a domestic terminal with concourses T
-   * and A–F, plus a separate international terminal at Concourse F.  A
-   * pedestrian tunnel and the Plane Train provide airside movement
-   * between concourses, while landside services such as MARTA, rental
-   * cars and ground transportation operate from the domestic terminal
-   * complex.  The data below reflects official walking times and
-   * includes metadata to support merged train segments and traveller
-   * guidance.
-   */
-  ATL: {
-    airportCode: 'ATL',
-    airportName: 'Hartsfield–Jackson Atlanta International Airport',
-    name: 'Hartsfield–Jackson Atlanta International Airport',
-    layoutSummary:
-      'Main domestic terminal with concourses T, A–F connected by the Plane Train and a pedestrian tunnel; international terminal located at Concourse F.',
-    officialMapResource: null,
-    officialTraversalResource: null,
-    currentAdvisory: null,
+const airports = {
+  ATL: mapAirport({
+    code: 'ATL',
+    name: 'Hartsfield-Jackson Atlanta International Airport',
+    city: 'Atlanta',
+    summary: 'Domestic and International terminal complex with Concourses T and A-F, Plane Train, pedestrian tunnel, MARTA, baggage claim, and domestic-side ground transportation.',
+    layoutSummary: 'Domestic and International terminals with Concourses T and A-F connected by the Plane Train and pedestrian walkway.',
+    officialMapResource: 'https://www.atl.com/maps/',
+    officialTraversalResource: 'https://www.atl.com/maps/',
+    currentAdvisory: 'Research packet notes longer-than-usual security waits, Concourse D widening, and domestic parking reconfiguration notices.',
+    sourceConfidence: 'verified_official_detail',
     nodes: [
-      'Domestic Terminal',
-      'Domestic North',
-      'Domestic South',
-      'Security',
-      'Concourse T',
-      'Concourse A',
-      'Concourse B',
-      'Concourse C',
-      'Concourse D',
-      'Concourse E',
-      'Concourse F',
-      'International Terminal',
-      'Baggage Claim',
-      'MARTA',
-      'Ground Transportation',
-      'Rental Car Center',
-      'Rideshare Pickup',
-      'Parking',
+      n('domestic-terminal', 'Domestic Terminal', 'Domestic'), n('domestic-north', 'Domestic North', 'North'), n('domestic-south', 'Domestic South', 'South'), n('security', 'Security', 'Security'),
+      n('concourse-t', 'Concourse T', 'T'), n('concourse-a', 'Concourse A', 'A'), n('concourse-b', 'Concourse B', 'B'), n('concourse-c', 'Concourse C', 'C'), n('concourse-d', 'Concourse D', 'D'), n('concourse-e', 'Concourse E', 'E'), n('concourse-f', 'Concourse F', 'F'),
+      n('international-terminal', 'International Terminal', 'Intl'), n('baggage-claim', 'Baggage Claim', 'Bags'), n('marta', 'MARTA Airport Station', 'MARTA'), n('ground-transportation', 'Ground Transportation', 'Ground'), n('rental-car-center', 'Rental Car Center', 'Rental'), n('rideshare-pickup', 'Rideshare Pickup', 'Ride'), n('parking', 'Parking', 'Parking'),
     ],
     edges: [
-      // Terminal and security connections
-      { from: 'Domestic Terminal', to: 'Security', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'landside', instruction: 'Walk to security', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Security', to: 'Concourse T', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'airside', instruction: 'Walk from security to Concourse T', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      // Walkway connections between concourses (airside pedestrian tunnel)
-      { from: 'Concourse T', to: 'Concourse A', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'airside', instruction: 'Walk through the pedestrian tunnel between concourses T and A', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Concourse A', to: 'Concourse B', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'airside', instruction: 'Walk through the pedestrian tunnel between concourses A and B', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Concourse B', to: 'Concourse C', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'airside', instruction: 'Walk through the pedestrian tunnel between concourses B and C', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Concourse C', to: 'Concourse D', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'airside', instruction: 'Walk through the pedestrian tunnel between concourses C and D', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Concourse D', to: 'Concourse E', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'airside', instruction: 'Walk through the pedestrian tunnel between concourses D and E', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Concourse E', to: 'Concourse F', mode: 'walk', estimatedMinutes: 10, time: 10, airsideOrLandside: 'airside', instruction: 'Walk through the pedestrian tunnel between concourses E and F', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      // Plane Train connections (preferred for longer moves; airside)
-      { from: 'Concourse T', to: 'Concourse A', mode: 'train', systemName: 'Plane Train', estimatedMinutes: 2, time: 2, frequency: '2 min', airsideOrLandside: 'airside', instruction: 'Take the Plane Train between concourses T and A', canMergeWithSameSystem: true, sourceNote: 'verified_official_detail' },
-      { from: 'Concourse A', to: 'Concourse B', mode: 'train', systemName: 'Plane Train', estimatedMinutes: 2, time: 2, frequency: '2 min', airsideOrLandside: 'airside', instruction: 'Take the Plane Train between concourses A and B', canMergeWithSameSystem: true, sourceNote: 'verified_official_detail' },
-      { from: 'Concourse B', to: 'Concourse C', mode: 'train', systemName: 'Plane Train', estimatedMinutes: 2, time: 2, frequency: '2 min', airsideOrLandside: 'airside', instruction: 'Take the Plane Train between concourses B and C', canMergeWithSameSystem: true, sourceNote: 'verified_official_detail' },
-      { from: 'Concourse C', to: 'Concourse D', mode: 'train', systemName: 'Plane Train', estimatedMinutes: 2, time: 2, frequency: '2 min', airsideOrLandside: 'airside', instruction: 'Take the Plane Train between concourses C and D', canMergeWithSameSystem: true, sourceNote: 'verified_official_detail' },
-      { from: 'Concourse D', to: 'Concourse E', mode: 'train', systemName: 'Plane Train', estimatedMinutes: 2, time: 2, frequency: '2 min', airsideOrLandside: 'airside', instruction: 'Take the Plane Train between concourses D and E', canMergeWithSameSystem: true, sourceNote: 'verified_official_detail' },
-      { from: 'Concourse E', to: 'Concourse F', mode: 'train', systemName: 'Plane Train', estimatedMinutes: 2, time: 2, frequency: '2 min', airsideOrLandside: 'airside', instruction: 'Take the Plane Train between concourses E and F', canMergeWithSameSystem: true, sourceNote: 'verified_official_detail' },
-      // International terminal connection (airside)
-      { from: 'International Terminal', to: 'Concourse F', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'airside', instruction: 'Walk between the international terminal and Concourse F', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      // Landside facilities
-      { from: 'Domestic Terminal', to: 'Baggage Claim', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'landside', instruction: 'Walk from the domestic terminal to baggage claim', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Baggage Claim', to: 'Ground Transportation', mode: 'walk', estimatedMinutes: 3, time: 3, airsideOrLandside: 'landside', instruction: 'Walk to the ground transportation area', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Ground Transportation', to: 'Rental Car Center', mode: 'shuttle', systemName: 'Rental Car Shuttle', estimatedMinutes: 8, time: 8, frequency: null, airsideOrLandside: 'landside', instruction: 'Take the rental car shuttle', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Ground Transportation', to: 'Rideshare Pickup', mode: 'walk', estimatedMinutes: 3, time: 3, airsideOrLandside: 'landside', instruction: 'Walk to the rideshare pickup area', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Ground Transportation', to: 'Parking', mode: 'walk', estimatedMinutes: 3, time: 3, airsideOrLandside: 'landside', instruction: 'Walk to parking', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'MARTA', to: 'Domestic Terminal', mode: 'walk', estimatedMinutes: 2, time: 2, airsideOrLandside: 'landside', instruction: 'Walk between the MARTA station and the domestic terminal', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Domestic North', to: 'Domestic Terminal', mode: 'walk', estimatedMinutes: 2, time: 2, airsideOrLandside: 'landside', instruction: 'Walk from Domestic North to the domestic terminal', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Domestic South', to: 'Domestic Terminal', mode: 'walk', estimatedMinutes: 2, time: 2, airsideOrLandside: 'landside', instruction: 'Walk from Domestic South to the domestic terminal', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
+      edge('domestic-north', 'domestic-terminal', 'walk', 2, 'Walk between Domestic North and the Domestic Terminal.', officialUnknown),
+      edge('domestic-south', 'domestic-terminal', 'walk', 2, 'Walk between Domestic South and the Domestic Terminal.', officialUnknown),
+      edge('domestic-terminal', 'security', 'walk', 5, 'Proceed from the Domestic Terminal toward security screening.', officialUnknown),
+      edge('security', 'concourse-t', 'walk', 5, 'After security, follow signs to Concourse T.', officialUnknown),
+      edge('concourse-t', 'concourse-a', 'train', 2, 'Take the Plane Train between Concourses T and A.', { ...officialUnknown, systemName: 'Plane Train', airsideOrLandside: 'airside', canMergeWithSameSystem: true }),
+      edge('concourse-a', 'concourse-b', 'train', 2, 'Take the Plane Train between Concourses A and B.', { ...officialUnknown, systemName: 'Plane Train', airsideOrLandside: 'airside', canMergeWithSameSystem: true }),
+      edge('concourse-b', 'concourse-c', 'train', 2, 'Take the Plane Train between Concourses B and C.', { ...officialUnknown, systemName: 'Plane Train', airsideOrLandside: 'airside', canMergeWithSameSystem: true }),
+      edge('concourse-c', 'concourse-d', 'train', 2, 'Take the Plane Train between Concourses C and D.', { ...officialUnknown, systemName: 'Plane Train', airsideOrLandside: 'airside', canMergeWithSameSystem: true }),
+      edge('concourse-d', 'concourse-e', 'train', 2, 'Take the Plane Train between Concourses D and E.', { ...officialUnknown, systemName: 'Plane Train', airsideOrLandside: 'airside', canMergeWithSameSystem: true }),
+      edge('concourse-e', 'concourse-f', 'train', 2, 'Take the Plane Train between Concourses E and F.', { ...officialUnknown, systemName: 'Plane Train', airsideOrLandside: 'airside', canMergeWithSameSystem: true }),
+      edge('concourse-t', 'concourse-a', 'walk', 5, 'Walk the pedestrian tunnel between Concourses T and A.', officialUnknown),
+      edge('concourse-a', 'concourse-b', 'walk', 5, 'Walk the pedestrian tunnel between Concourses A and B.', officialUnknown),
+      edge('concourse-b', 'concourse-c', 'walk', 5, 'Walk the pedestrian tunnel between Concourses B and C.', officialUnknown),
+      edge('concourse-c', 'concourse-d', 'walk', 5, 'Walk the pedestrian tunnel between Concourses C and D.', officialUnknown),
+      edge('concourse-d', 'concourse-e', 'walk', 5, 'Walk the pedestrian tunnel between Concourses D and E.', officialUnknown),
+      edge('concourse-e', 'concourse-f', 'walk', 10, 'Walk the extended pedestrian tunnel between Concourses E and F.', officialUnknown),
+      edge('international-terminal', 'concourse-f', 'walk', 5, 'Use the International Terminal access point for Concourse F.', officialUnknown),
+      edge('domestic-terminal', 'international-terminal', 'shuttle', 15, 'Use the free curbside shuttle between the Domestic and International terminals.', { ...officialUnknown, systemName: 'Domestic/International Shuttle', airsideOrLandside: 'landside', note: 'Separate roadway entrances exist for Domestic and International terminals.' }),
+      edge('domestic-terminal', 'baggage-claim', 'walk', 5, 'Follow signs from Domestic Terminal to baggage claim.', officialUnknown),
+      edge('baggage-claim', 'ground-transportation', 'walk', 3, 'Follow signs from baggage claim to ground transportation.', officialUnknown),
+      edge('ground-transportation', 'rental-car-center', 'shuttle', 8, 'Use the rental car shuttle connection.', { ...officialUnknown, systemName: 'Rental Car Shuttle', airsideOrLandside: 'landside' }),
+      edge('ground-transportation', 'rideshare-pickup', 'walk', 3, 'Follow rideshare pickup signs.', officialUnknown),
+      edge('ground-transportation', 'parking', 'walk', 3, 'Follow parking signs.', officialUnknown),
+      edge('marta', 'domestic-terminal', 'walk', 2, 'Follow signs between MARTA Airport Station and the Domestic Terminal.', officialUnknown),
     ],
-    beforeTips: [
-      'Verify your gate and concourse—gate assignments sometimes change.',
-      'Ensure you have your ID and boarding pass ready for security.',
-      'Allow extra time to clear security during busy periods.',
-    ],
-    watchTips: [
-      'Concourse E to F is a longer walk (~10 minutes); consider using the Plane Train.',
-      'Stay alert for signage directing you to baggage claim or ground transportation.',
-      'Lines for MARTA and rideshare can be busy—plan accordingly.',
-    ],
-    routeNotes:
-      'Use the Plane Train or the pedestrian tunnel to move between concourses. MARTA provides transit to downtown from the domestic terminal.',
-    transitSystems: ['Plane Train', 'MARTA', 'Rental Car Shuttle'],
-    securityNotes:
-      'All concourse connections via the Plane Train or pedestrian tunnel remain airside; no additional security screening is required.',
-    groundTransportationNotes:
-      'Ground transportation, rental cars and rideshare pickup are located at the domestic terminal side. The MARTA station is adjacent to the domestic terminal.',
-    sourceConfidence: 'verified_official_detail',
-  },
+    schematic: ['domestic-terminal', 'security', 'concourse-t', 'concourse-a', 'concourse-b', 'concourse-c', 'concourse-d', 'concourse-e', 'concourse-f', 'international-terminal'],
+    beforeMoveTip: 'Confirm Domestic versus International roadway access, your concourse, and current security wait guidance before moving.',
+    watchOutTip: 'Official transfer time was not published in the extracted source; give yourself extra time, especially around Concourse D work and parking changes.',
+    securityNotes: 'Plane Train and pedestrian tunnel movements between concourses are inside security; the domestic/international curbside shuttle is landside.',
+  }),
 
-  /*
-   * LAX — Los Angeles International Airport
-   *
-   * LAX comprises nine terminals (1–8 plus the Tom Bradley International
-   * Terminal, labelled TBIT) arranged in a horseshoe.  A number of
-   * airside connectors exist between adjacent terminals, but many
-   * transfers require returning to the public side and taking a shuttle.
-   */
-  LAX: {
-    airportCode: 'LAX',
-    airportName: 'Los Angeles International Airport',
+  LAX: mapAirport({
+    code: 'LAX',
     name: 'Los Angeles International Airport',
-    layoutSummary:
-      'Nine terminals (1–8 and TBIT) arranged in a horseshoe; selected terminals have airside connectors while others require landside shuttle transfers.',
-    officialMapResource: null,
-    officialTraversalResource: null,
-    currentAdvisory: null,
+    city: 'Los Angeles',
+    summary: 'Terminals 1-8 plus Terminal B/TBIT with selected airside connectors, LAX-it rideshare pickup, Metro Connector Shuttle, and color-coded ground transportation signs.',
+    layoutSummary: 'Terminals 1-8 and Terminal B/TBIT arranged around the central roadway loop.',
+    officialMapResource: 'https://www.flylax.com/lax-terminal-maps',
+    officialTraversalResource: 'https://www.flylax.com/lax-traffic-and-ground-transportation',
+    currentAdvisory: 'Terminal 5 is closed for construction with anticipated reopening in 2028.',
+    sourceConfidence: 'verified_official_detail',
     nodes: [
-      'Terminal 1',
-      'Terminal 2',
-      'Terminal 3',
-      'TBIT',
-      'Terminal 4',
-      'Terminal 5',
-      'Terminal 6',
-      'Terminal 7',
-      'Terminal 8',
-      'Baggage Claim',
-      'Ground Transportation',
-      'Rideshare Pickup',
-      'Parking',
-      'Shuttle Stop',
+      n('terminal-1', 'Terminal 1', 'T1'), n('terminal-2', 'Terminal 2', 'T2'), n('terminal-3', 'Terminal 3', 'T3'), n('terminal-b', 'Terminal B / TBIT', 'TBIT'), n('terminal-4', 'Terminal 4', 'T4'), n('terminal-5', 'Terminal 5 (closed for construction)', 'T5'), n('terminal-6', 'Terminal 6', 'T6'), n('terminal-7', 'Terminal 7', 'T7'), n('terminal-8', 'Terminal 8', 'T8'),
+      n('baggage-claim', 'Baggage Claim', 'Bags'), n('lax-it', 'LAX-it Rideshare Pickup', 'LAX-it'), n('metro-connector', 'Metro Transit Center / Connector Shuttle', 'Metro'), n('ground-transportation', 'Ground Transportation / Shuttle Stops', 'Ground'), n('rental-car-shuttle', 'Rental Car Shuttle Pickup', 'Rental'), n('parking', 'Parking', 'Parking'),
     ],
     edges: [
-      // Airside walkway connections where available
-      { from: 'Terminal 1', to: 'Terminal 2', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'airside', instruction: 'Walk between Terminals 1 and 2', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Terminal 2', to: 'Terminal 3', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'airside', instruction: 'Walk between Terminals 2 and 3', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Terminal 3', to: 'TBIT', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'airside', instruction: 'Walk between Terminal 3 and TBIT', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Terminal 3', to: 'Terminal 4', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'airside', instruction: 'Walk between Terminals 3 and 4', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Terminal 4', to: 'Terminal 5', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'airside', instruction: 'Walk between Terminals 4 and 5', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Terminal 5', to: 'Terminal 6', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'airside', instruction: 'Walk between Terminals 5 and 6', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Terminal 6', to: 'Terminal 7', mode: 'walk', estimatedMinutes: 6, time: 6, airsideOrLandside: 'airside', instruction: 'Walk between Terminals 6 and 7', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Terminal 7', to: 'Terminal 8', mode: 'walk', estimatedMinutes: 6, time: 6, airsideOrLandside: 'airside', instruction: 'Walk between Terminals 7 and 8', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      // Airside shuttle connection (Terminal 1 ↔ TBIT)
-      { from: 'Terminal 1', to: 'TBIT', mode: 'bus', systemName: 'Airside shuttle', estimatedMinutes: 10, time: 10, frequency: null, airsideOrLandside: 'airside', instruction: 'Take the airside shuttle between Terminal 1 and TBIT', canMergeWithSameSystem: true, sourceNote: 'official_map_available_time_unspecified' },
-      // Landside facility connections
-      { from: 'Terminal 1', to: 'Baggage Claim', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'landside', instruction: 'Walk from Terminal 1 to baggage claim', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Terminal 2', to: 'Baggage Claim', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'landside', instruction: 'Walk from Terminal 2 to baggage claim', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Terminal 3', to: 'Baggage Claim', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'landside', instruction: 'Walk from Terminal 3 to baggage claim', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'TBIT', to: 'Baggage Claim', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'landside', instruction: 'Walk from TBIT to baggage claim', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Terminal 4', to: 'Baggage Claim', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'landside', instruction: 'Walk from Terminal 4 to baggage claim', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Terminal 5', to: 'Baggage Claim', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'landside', instruction: 'Walk from Terminal 5 to baggage claim', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Terminal 6', to: 'Baggage Claim', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'landside', instruction: 'Walk from Terminal 6 to baggage claim', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Terminal 7', to: 'Baggage Claim', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'landside', instruction: 'Walk from Terminal 7 to baggage claim', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Terminal 8', to: 'Baggage Claim', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'landside', instruction: 'Walk from Terminal 8 to baggage claim', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Baggage Claim', to: 'Ground Transportation', mode: 'walk', estimatedMinutes: 3, time: 3, airsideOrLandside: 'landside', instruction: 'Walk to ground transportation', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Ground Transportation', to: 'Rideshare Pickup', mode: 'walk', estimatedMinutes: 3, time: 3, airsideOrLandside: 'landside', instruction: 'Walk to the rideshare pickup area', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Ground Transportation', to: 'Parking', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'landside', instruction: 'Walk to parking', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Ground Transportation', to: 'Shuttle Stop', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'landside', instruction: 'Walk to the shuttle stop', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
+      edge('terminal-1', 'terminal-2', 'walk', 5, 'Use posted signs between Terminals 1 and 2.', officialUnknown),
+      edge('terminal-2', 'terminal-3', 'walk', 5, 'Use posted signs between Terminals 2 and 3.', officialUnknown),
+      edge('terminal-3', 'terminal-b', 'walk', 5, 'Use the airside connector between Terminal 3 and Terminal B/TBIT.', officialUnknown),
+      edge('terminal-b', 'terminal-4', 'walk', 5, 'Use the connector between Terminal B/TBIT and Terminal 4.', officialUnknown),
+      edge('terminal-4', 'terminal-5', 'walk', 5, 'Use posted connector signs between Terminals 4 and 5.', { ...officialUnknown, note: 'Terminal 5 is closed for construction; confirm current access before routing to this terminal.' }),
+      edge('terminal-5', 'terminal-6', 'walk', 5, 'Use posted connector signs between Terminals 5 and 6.', { ...officialUnknown, note: 'Terminal 5 is closed for construction; confirm current access before routing to this terminal.' }),
+      edge('terminal-6', 'terminal-7', 'walk', 6, 'Use posted connector signs between Terminals 6 and 7.', officialUnknown),
+      edge('terminal-7', 'terminal-8', 'walk', 6, 'Use posted connector signs between Terminals 7 and 8.', officialUnknown),
+      edge('terminal-1', 'terminal-b', 'bus', 10, 'Use the official inter-terminal shuttle/connection from Terminal 1 toward Terminal B/TBIT.', { ...officialUnknown, systemName: 'Inter-terminal Shuttle', canMergeWithSameSystem: true, airsideOrLandside: 'landside' }),
+      edge('terminal-1', 'lax-it', 'walk', 5, 'Walk from Terminal 1 to LAX-it by following green LAX-it signs.', { officialMinutes: 5, sourceConfidence: 'verified_official_detail', note: 'Official range: about 3-8 minutes from Terminals 1 and 7.' }),
+      edge('terminal-7', 'lax-it', 'walk', 5, 'Walk from Terminal 7 to LAX-it by following green LAX-it signs.', { officialMinutes: 5, sourceConfidence: 'verified_official_detail', note: 'Official range: about 3-8 minutes from Terminals 1 and 7.' }),
+      edge('terminal-b', 'lax-it', 'shuttle', 19, 'Use the free LAX-it shuttle or follow LAX-it signs for the longer walk from the central/farthest terminal area.', { officialMinutes: 19, systemName: 'LAX-it Shuttle/Walk', frequency: 'Shuttle every 3-5 min', sourceConfidence: 'verified_official_detail' }),
+      edge('terminal-3', 'lax-it', 'shuttle', 19, 'Use the free LAX-it shuttle or follow green LAX-it signs.', { officialMinutes: 19, systemName: 'LAX-it Shuttle/Walk', frequency: 'Shuttle every 3-5 min', sourceConfidence: 'verified_official_detail' }),
+      edge('terminal-4', 'lax-it', 'shuttle', 19, 'Use the free LAX-it shuttle or follow green LAX-it signs.', { officialMinutes: 19, systemName: 'LAX-it Shuttle/Walk', frequency: 'Shuttle every 3-5 min', sourceConfidence: 'verified_official_detail' }),
+      edge('terminal-6', 'lax-it', 'shuttle', 19, 'Use the free LAX-it shuttle or follow green LAX-it signs.', { officialMinutes: 19, systemName: 'LAX-it Shuttle/Walk', frequency: 'Shuttle every 3-5 min', sourceConfidence: 'verified_official_detail' }),
+      edge('ground-transportation', 'metro-connector', 'shuttle', 10, 'Use the Metro Connector Shuttle by following pink public transportation signs.', { officialMinutes: 10, systemName: 'Metro Connector Shuttle', frequency: 'Averages every 10 min', airsideOrLandside: 'landside', sourceConfidence: 'verified_official_detail' }),
+      edge('ground-transportation', 'rental-car-shuttle', 'shuttle', 6, 'Use purple rental-car shuttle signs.', { ...officialUnknown, systemName: 'Rental Car Shuttle', airsideOrLandside: 'landside' }),
+      ...['terminal-1','terminal-2','terminal-3','terminal-b','terminal-4','terminal-5','terminal-6','terminal-7','terminal-8'].map((terminal) => edge(terminal, 'baggage-claim', 'walk', 5, `Follow baggage claim signs from ${terminal}.`, officialUnknown)),
+      edge('baggage-claim', 'ground-transportation', 'walk', 3, 'Follow shuttle, taxi, public transportation, and ground transportation signs.', officialUnknown),
+      edge('ground-transportation', 'parking', 'walk', 5, 'Follow parking signs.', officialUnknown),
     ],
-    beforeTips: [
-      'Check which terminal your airline uses—LAX terminals are spread out.',
-      'Some terminals share security; verify whether you need to exit and re‑enter.',
-      'Consider airport traffic when scheduling pickup or drop‑off.',
-    ],
-    watchTips: [
-      'Walking between terminals 6–8 can take longer; use walkways and moving sidewalks.',
-      'Terminal 1 is not directly connected airside to TBIT—look for shuttle signs.',
-      'Ground transportation pickup areas may be congested—allow extra time.',
-    ],
-    routeNotes:
-      'Use airside connectors where available; otherwise return landside and take shuttle buses to transfer between terminals.',
-    transitSystems: ['Airside shuttle'],
-    securityNotes:
-      'Only certain terminals have airside connectors.  Transferring between terminals via shuttle requires leaving the secure area and re‑clearing security.',
-    groundTransportationNotes:
-      'Ground transportation, rideshare and parking facilities are located outside each terminal. Shuttle buses operate frequently between terminals and other airport facilities.',
-    sourceConfidence: 'verified_official_detail',
-  },
+    schematic: ['terminal-1', 'terminal-2', 'terminal-3', 'terminal-b', 'terminal-4', 'terminal-5', 'terminal-6', 'terminal-7', 'terminal-8'],
+    beforeMoveTip: 'Use official sign colors: green for LAX-it, pink for public transport, purple for rental-car shuttles, red pylons for hotel/private parking shuttles, and dark blue for accessible taxi pickup.',
+    watchOutTip: 'Terminal 5 is closed for construction. Confirm airline terminal assignments and connector status before moving.',
+    securityNotes: 'Only selected terminal movements stay airside. Many ground-transportation and shuttle movements are landside and may require TSA re-screening.',
+  }),
 
-  /*
-   * DFW — Dallas/Fort Worth International Airport
-   *
-   * DFW has five semi‑circular terminals connected airside by the
-   * Skylink people mover and landside by the Terminal Link shuttle.  This
-   * dataset includes simplified segment times and emphasises which
-   * transfers remain inside security.
-   */
-  DFW: {
-    airportCode: 'DFW',
-    airportName: 'Dallas/Fort Worth International Airport',
+  DFW: mapAirport({
+    code: 'DFW',
     name: 'Dallas/Fort Worth International Airport',
-    layoutSummary:
-      'Five terminals (A–E) connected airside by the Skylink people mover and landside by the Terminal Link shuttle.',
-    officialMapResource: null,
-    officialTraversalResource: null,
-    currentAdvisory:
-      'Terminal C has one Terminal Link stop due to construction; shuttle frequency varies by time of day.',
-    nodes: [
-      'Terminal A',
-      'Terminal B',
-      'Terminal C',
-      'Terminal D',
-      'Terminal E',
-      'Baggage Claim',
-      'Ground Transportation',
-      'Rental Car Center',
-      'Rideshare Pickup',
-      'Parking',
-      'DART Station',
-      'TEXRail Station',
-    ],
-    edges: [
-      // Skylink (airside) segments — approximate 2 minutes between adjacent terminals
-      { from: 'Terminal A', to: 'Terminal B', mode: 'train', systemName: 'Skylink', estimatedMinutes: 2, time: 2, frequency: '2 min', airsideOrLandside: 'airside', instruction: 'Take the Skylink between Terminals A and B', canMergeWithSameSystem: true, sourceNote: 'official_map_available_time_unspecified' },
-      { from: 'Terminal B', to: 'Terminal C', mode: 'train', systemName: 'Skylink', estimatedMinutes: 2, time: 2, frequency: '2 min', airsideOrLandside: 'airside', instruction: 'Take the Skylink between Terminals B and C', canMergeWithSameSystem: true, sourceNote: 'official_map_available_time_unspecified' },
-      { from: 'Terminal C', to: 'Terminal D', mode: 'train', systemName: 'Skylink', estimatedMinutes: 2, time: 2, frequency: '2 min', airsideOrLandside: 'airside', instruction: 'Take the Skylink between Terminals C and D', canMergeWithSameSystem: true, sourceNote: 'official_map_available_time_unspecified' },
-      { from: 'Terminal D', to: 'Terminal E', mode: 'train', systemName: 'Skylink', estimatedMinutes: 2, time: 2, frequency: '2 min', airsideOrLandside: 'airside', instruction: 'Take the Skylink between Terminals D and E', canMergeWithSameSystem: true, sourceNote: 'official_map_available_time_unspecified' },
-      // Terminal Link (landside shuttle) segments — times not specified by official source
-      { from: 'Terminal A', to: 'Terminal B', mode: 'bus', systemName: 'Terminal Link', estimatedMinutes: null, time: 5, frequency: '8–10 min', airsideOrLandside: 'landside', instruction: 'Take the Terminal Link shuttle between Terminals A and B', canMergeWithSameSystem: true, sourceNote: 'official_map_available_time_unspecified' },
-      { from: 'Terminal B', to: 'Terminal C', mode: 'bus', systemName: 'Terminal Link', estimatedMinutes: null, time: 5, frequency: '8–10 min', airsideOrLandside: 'landside', instruction: 'Take the Terminal Link shuttle between Terminals B and C', canMergeWithSameSystem: true, sourceNote: 'official_map_available_time_unspecified' },
-      { from: 'Terminal C', to: 'Terminal D', mode: 'bus', systemName: 'Terminal Link', estimatedMinutes: null, time: 5, frequency: '8–10 min', airsideOrLandside: 'landside', instruction: 'Take the Terminal Link shuttle between Terminals C and D', canMergeWithSameSystem: true, sourceNote: 'official_map_available_time_unspecified' },
-      { from: 'Terminal D', to: 'Terminal E', mode: 'bus', systemName: 'Terminal Link', estimatedMinutes: null, time: 5, frequency: '8–10 min', airsideOrLandside: 'landside', instruction: 'Take the Terminal Link shuttle between Terminals D and E', canMergeWithSameSystem: true, sourceNote: 'official_map_available_time_unspecified' },
-      // Landside walkway connections to baggage claim and facilities
-      { from: 'Terminal A', to: 'Baggage Claim', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'landside', instruction: 'Walk from Terminal A to baggage claim', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Terminal B', to: 'Baggage Claim', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'landside', instruction: 'Walk from Terminal B to baggage claim', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Terminal C', to: 'Baggage Claim', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'landside', instruction: 'Walk from Terminal C to baggage claim', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Terminal D', to: 'Baggage Claim', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'landside', instruction: 'Walk from Terminal D to baggage claim', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Terminal E', to: 'Baggage Claim', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'landside', instruction: 'Walk from Terminal E to baggage claim', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Baggage Claim', to: 'Ground Transportation', mode: 'walk', estimatedMinutes: 3, time: 3, airsideOrLandside: 'landside', instruction: 'Walk to ground transportation', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Ground Transportation', to: 'Rental Car Center', mode: 'shuttle', systemName: 'Rental Car Shuttle', estimatedMinutes: 10, time: 10, frequency: null, airsideOrLandside: 'landside', instruction: 'Take the rental car shuttle from ground transportation', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Ground Transportation', to: 'Rideshare Pickup', mode: 'walk', estimatedMinutes: 3, time: 3, airsideOrLandside: 'landside', instruction: 'Walk to the rideshare pickup area', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Ground Transportation', to: 'Parking', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'landside', instruction: 'Walk to parking', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Ground Transportation', to: 'DART Station', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'landside', instruction: 'Walk to the DART station', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Ground Transportation', to: 'TEXRail Station', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'landside', instruction: 'Walk to the TEXRail station', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-    ],
-    beforeTips: [
-      'Verify whether you are airside (post‑security) or landside; use Skylink for airside connections and Terminal Link for landside transfers.',
-      'Check which terminal your airline operates from; DFW has five terminals.',
-      'Allow extra time for Terminal Link if traveling before 5 a.m. when frequency is reduced.',
-    ],
-    watchTips: [
-      'Terminal Link shuttles stop only at one location for Terminal C due to construction.',
-      'Stay on the Skylink past intermediate stops to reach your terminal; trains run in both directions.',
-      'Ground transportation and rideshare areas can be busy; allow extra time.',
-    ],
-    routeNotes:
-      'Use Skylink (airside) or Terminal Link (landside) to navigate between terminals.',
-    transitSystems: ['Skylink', 'Terminal Link', 'DART', 'TEXRail', 'Rental Car Shuttle'],
-    securityNotes:
-      'Skylink operates inside security; Terminal Link runs outside security and requires re‑screening.',
-    groundTransportationNotes:
-      'Ground transportation connects to rental cars, DART and TEXRail stations; follow signage accordingly.',
-    sourceConfidence: 'official_map_available_time_unspecified',
-  },
-
-  /*
-   * DEN — Denver International Airport
-   */
-  DEN: {
-    airportCode: 'DEN',
-    airportName: 'Denver International Airport',
-    name: 'Denver International Airport',
-    layoutSummary:
-      'Jeppesen Terminal and Concourses A, B and C; the Train to the Gates provides airside transfers between terminal and concourses.',
-    officialMapResource: null,
-    officialTraversalResource: null,
-    currentAdvisory:
-      'Construction may affect circulation; times may vary.',
-    nodes: [
-      'Jeppesen Terminal',
-      'Concourse A',
-      'Concourse B',
-      'Concourse C',
-      'Baggage Claim',
-      'Ground Transportation',
-      'RTD A Line Station',
-      'Parking',
-      'Rideshare Pickup',
-    ],
-    edges: [
-      // Train to the Gates segments (airside)
-      { from: 'Jeppesen Terminal', to: 'Concourse A', mode: 'train', systemName: 'Train to Gates', estimatedMinutes: 3, time: 3, frequency: '2–3 min', airsideOrLandside: 'airside', instruction: 'Take the Train to Gates from the terminal to Concourse A', canMergeWithSameSystem: true, sourceNote: 'verified_official_detail' },
-      { from: 'Concourse A', to: 'Concourse B', mode: 'train', systemName: 'Train to Gates', estimatedMinutes: 3, time: 3, frequency: '2–3 min', airsideOrLandside: 'airside', instruction: 'Take the Train to Gates between concourses A and B', canMergeWithSameSystem: true, sourceNote: 'verified_official_detail' },
-      { from: 'Concourse B', to: 'Concourse C', mode: 'train', systemName: 'Train to Gates', estimatedMinutes: 2, time: 2, frequency: '2–3 min', airsideOrLandside: 'airside', instruction: 'Take the Train to Gates between concourses B and C', canMergeWithSameSystem: true, sourceNote: 'verified_official_detail' },
-      // Optional pedestrian bridge from Concourse A to terminal (airside) — approximate time
-      { from: 'Concourse A', to: 'Jeppesen Terminal', mode: 'walk', estimatedMinutes: 10, time: 10, airsideOrLandside: 'airside', instruction: 'Walk via the pedestrian bridge from Concourse A to the terminal', canMergeWithSameSystem: false, sourceNote: 'official_map_available_time_unspecified' },
-      // Landside connections
-      { from: 'Jeppesen Terminal', to: 'Baggage Claim', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'landside', instruction: 'Walk from the terminal to baggage claim', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Baggage Claim', to: 'Ground Transportation', mode: 'walk', estimatedMinutes: 3, time: 3, airsideOrLandside: 'landside', instruction: 'Walk to ground transportation', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Ground Transportation', to: 'RTD A Line Station', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'landside', instruction: 'Walk to the RTD A Line station at the Transit Center', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Ground Transportation', to: 'Parking', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'landside', instruction: 'Walk to parking', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Ground Transportation', to: 'Rideshare Pickup', mode: 'walk', estimatedMinutes: 3, time: 3, airsideOrLandside: 'landside', instruction: 'Walk to the rideshare pickup area', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-    ],
-    beforeTips: [
-      'Plan extra time for construction; some walkways may be rerouted.',
-      'Use the Train to the Gates for travel between the terminal and concourses.',
-      'Check your concourse assignment before heading to security.',
-    ],
-    watchTips: [
-      'The train ride to Concourse C is longer; stay on through A and B.',
-      'Some concourses have limited dining options; plan ahead.',
-      'Ground transportation lines may vary depending on time of day.',
-    ],
-    routeNotes:
-      'The Train to the Gates is the primary airside transportation between the terminal and concourses.',
-    transitSystems: ['Train to Gates', 'RTD A Line'],
-    securityNotes:
-      'The Train to the Gates operates inside security; re‑entry screening is not required when moving between concourses.',
-    groundTransportationNotes:
-      'The Transit Center provides access to the RTD A Line, buses and parking.',
+    city: 'Dallas-Fort Worth',
+    summary: 'Terminals A-E connected by Skylink inside security and Terminal Link outside security, with rail stations in Terminals A and B.',
+    layoutSummary: 'Five terminals A-E in a large campus connected by airside and landside transportation systems.',
+    officialMapResource: 'https://www.dfwairport.com/map/',
+    officialTraversalResource: 'https://www.dfwairport.com/explore/plan/connect/',
+    currentAdvisory: 'DFW Forward construction is active, including Terminal C work.',
     sourceConfidence: 'verified_official_detail',
-  },
-
-  /*
-   * ORD — Chicago O’Hare International Airport
-   */
-  ORD: {
-    airportCode: 'ORD',
-    airportName: 'Chicago O’Hare International Airport',
-    name: 'Chicago O’Hare International Airport',
-    layoutSummary:
-      'Terminals 1, 2 and 3 are connected airside by walkways; Terminal 5 and the Multi‑Modal Facility are linked by the landside Airport Transit System (ATS).',
-    officialMapResource: null,
-    officialTraversalResource: null,
-    currentAdvisory:
-      'ATS operates every 3–5 minutes; passengers must re‑enter security when transferring via ATS.',
-    nodes: [
-      'Terminal 1',
-      'Terminal 2',
-      'Terminal 3',
-      'Terminal 5',
-      'Baggage Claim',
-      'Ground Transportation',
-      'Multi-Modal Facility',
-      'CTA Blue Line Station',
-      'Parking',
-      'Rideshare Pickup',
-    ],
+    nodes: [n('terminal-a','Terminal A','A'), n('terminal-b','Terminal B','B'), n('terminal-c','Terminal C','C'), n('terminal-d','Terminal D','D'), n('terminal-e','Terminal E','E'), n('baggage-claim','Baggage Claim','Bags'), n('ground-transportation','Ground Transportation','Ground'), n('rental-car-center','Rental Car Center','Rental'), n('rideshare-pickup','Rideshare Pickup','Ride'), n('parking','Parking','Parking'), n('dart-station','DART Station','DART'), n('texrail-station','TEXRail Station','TEXRail')],
     edges: [
-      // Airside walkway connectors between Terminals 1, 2 and 3
-      { from: 'Terminal 1', to: 'Terminal 2', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'airside', instruction: 'Walk via airside connector between Terminals 1 and 2', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Terminal 2', to: 'Terminal 3', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'airside', instruction: 'Walk via airside connector between Terminals 2 and 3', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      // ATS segments (landside)
-      { from: 'Terminal 1', to: 'Terminal 2', mode: 'train', systemName: 'ATS', estimatedMinutes: 2, time: 2, frequency: '3–5 min', airsideOrLandside: 'landside', instruction: 'Take the ATS between Terminals 1 and 2', canMergeWithSameSystem: true, sourceNote: 'verified_official_detail' },
-      { from: 'Terminal 2', to: 'Terminal 3', mode: 'train', systemName: 'ATS', estimatedMinutes: 2, time: 2, frequency: '3–5 min', airsideOrLandside: 'landside', instruction: 'Take the ATS between Terminals 2 and 3', canMergeWithSameSystem: true, sourceNote: 'verified_official_detail' },
-      { from: 'Terminal 3', to: 'Terminal 5', mode: 'train', systemName: 'ATS', estimatedMinutes: 3, time: 3, frequency: '3–5 min', airsideOrLandside: 'landside', instruction: 'Take the ATS between Terminal 3 and Terminal 5', canMergeWithSameSystem: true, sourceNote: 'verified_official_detail' },
-      { from: 'Terminal 5', to: 'Multi-Modal Facility', mode: 'train', systemName: 'ATS', estimatedMinutes: 5, time: 5, frequency: '3–5 min', airsideOrLandside: 'landside', instruction: 'Take the ATS between Terminal 5 and the Multi-Modal Facility', canMergeWithSameSystem: true, sourceNote: 'verified_official_detail' },
-      { from: 'Multi-Modal Facility', to: 'Terminal 1', mode: 'train', systemName: 'ATS', estimatedMinutes: 5, time: 5, frequency: '3–5 min', airsideOrLandside: 'landside', instruction: 'Take the ATS from the Multi-Modal Facility to Terminal 1', canMergeWithSameSystem: true, sourceNote: 'verified_official_detail' },
-      // Landside facility connections
-      { from: 'Terminal 1', to: 'Baggage Claim', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'landside', instruction: 'Walk to baggage claim from Terminal 1', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Terminal 2', to: 'Baggage Claim', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'landside', instruction: 'Walk to baggage claim from Terminal 2', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Terminal 3', to: 'Baggage Claim', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'landside', instruction: 'Walk to baggage claim from Terminal 3', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Terminal 5', to: 'Baggage Claim', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'landside', instruction: 'Walk to baggage claim from Terminal 5', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Baggage Claim', to: 'Ground Transportation', mode: 'walk', estimatedMinutes: 3, time: 3, airsideOrLandside: 'landside', instruction: 'Walk to ground transportation', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Ground Transportation', to: 'Parking', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'landside', instruction: 'Walk to parking', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Ground Transportation', to: 'Rideshare Pickup', mode: 'walk', estimatedMinutes: 3, time: 3, airsideOrLandside: 'landside', instruction: 'Walk to the rideshare pickup area', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Ground Transportation', to: 'CTA Blue Line Station', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'landside', instruction: 'Walk to the CTA Blue Line station', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Multi-Modal Facility', to: 'CTA Blue Line Station', mode: 'walk', estimatedMinutes: 2, time: 2, airsideOrLandside: 'landside', instruction: 'Walk from the Multi-Modal Facility to the CTA Blue Line station', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
+      ...[['terminal-a','terminal-b'],['terminal-b','terminal-c'],['terminal-c','terminal-d'],['terminal-d','terminal-e']].map(([from,to]) => edge(from, to, 'train', 2, 'Take Skylink inside security between terminals.', { officialMinutes: null, systemName: 'Skylink', frequency: 'Arrives every 2 min; average ride 5 min; max 9 min between farthest points', operatingHours: '24 hours', airsideOrLandside: 'airside', canMergeWithSameSystem: true, sourceConfidence: 'verified_official_detail', sourceNote: 'Official per-segment time not specified; official system average/max is known.' })),
+      ...[['terminal-a','terminal-b'],['terminal-b','terminal-c'],['terminal-c','terminal-d'],['terminal-d','terminal-e']].map(([from,to]) => edge(from, to, 'shuttle', 6, 'Take Terminal Link outside security between terminals.', { officialMinutes: null, systemName: 'Terminal Link', airsideOrLandside: 'landside', frequency: 'Terminal Link shuttle service outside security', canMergeWithSameSystem: true, sourceConfidence: 'verified_official_detail', sourceNote: 'Use only when landside or when re-screening is acceptable.' })),
+      ...['terminal-a','terminal-b','terminal-c','terminal-d','terminal-e'].map((terminal) => edge(terminal, 'baggage-claim', 'walk', 5, 'Follow baggage claim signs.', officialUnknown)),
+      edge('baggage-claim','ground-transportation','walk',3,'Follow ground transportation signs.', officialUnknown),
+      edge('ground-transportation','rental-car-center','shuttle',10,'Use the rental car center shuttle.', { ...officialUnknown, systemName: 'Rental Car Shuttle', airsideOrLandside:'landside' }),
+      edge('ground-transportation','rideshare-pickup','walk',3,'Follow rideshare pickup signs.', officialUnknown),
+      edge('ground-transportation','parking','walk',5,'Follow parking signs.', officialUnknown),
+      edge('terminal-a','dart-station','walk',4,'Follow rail signs to the DART station in Terminal A.', officialUnknown),
+      edge('terminal-b','texrail-station','walk',4,'Follow rail signs to the TEXRail station in Terminal B.', officialUnknown),
     ],
-    beforeTips: [
-      'Check whether your flight arrives/departs from Terminal 5; the ATS provides easy access to other terminals and parking.',
-      'Follow signage for walkway connectors when staying airside between Terminals 1, 2 and 3.',
-      'Allow time for ATS wait (every 3–5 minutes) when transferring landside.',
-    ],
-    watchTips: [
-      'The ATS is landside; you will need to re‑clear security if traveling between terminals for connecting flights.',
-      'During construction, walkway routes may change; watch for updated signs.',
-      'Ground transportation options are located on the lower level; look for rental car shuttles and the CTA Blue Line station.',
-    ],
-    routeNotes:
-      'Use walkway connectors for airside transfers between Terminals 1, 2 and 3; use the ATS for landside movement and for access to Terminal 5 or the Multi‑Modal Facility.',
-    transitSystems: ['ATS', 'CTA Blue Line'],
-    securityNotes:
-      'The ATS operates landside; re‑screening is required when entering terminals after using the ATS.',
-    groundTransportationNotes:
-      'The Multi‑Modal Facility houses rental car and parking; the ATS connects this facility to all terminals.',
-    sourceConfidence: 'verified_official_detail',
-  },
+    schematic: ['terminal-a','terminal-b','terminal-c','terminal-d','terminal-e'],
+    beforeMoveTip: 'Decide whether you are inside or outside security. Use Skylink inside security; use Terminal Link outside security.',
+    watchOutTip: 'Terminal C construction can change stops and wayfinding. Follow DFW signs to the nearest Skylink or Terminal Link point.',
+    securityNotes: 'Skylink is inside security. Terminal Link is outside security and can require TSA re-screening.',
+  }),
 
-  /*
-   * JFK — New York John F. Kennedy International Airport
-   */
-  JFK: {
-    airportCode: 'JFK',
-    airportName: 'New York John F. Kennedy International Airport',
-    name: 'New York John F. Kennedy International Airport',
-    layoutSummary:
-      'Multiple standalone terminals connected by the landside AirTrain loop; each terminal also has its own landside ground transportation facilities.',
-    officialMapResource: null,
-    officialTraversalResource: null,
-    currentAdvisory:
-      'Expect travel impacts due to ongoing redevelopment; allow extra time.',
-    nodes: [
-      'Terminal 1',
-      'Terminal 2',
-      'Terminal 4',
-      'Terminal 5',
-      'Terminal 7',
-      'Terminal 8',
-      'Baggage Claim',
-      'Ground Transportation',
-      'AirTrain Station',
-      'Parking',
-      'Rideshare Pickup',
-      'Subway/LIRR Connection',
+  DEN: mapAirport({
+    code:'DEN', name:'Denver International Airport', city:'Denver',
+    summary:'Jeppesen Terminal plus Concourses A/B/C connected by Train to the Gates, with Airport Transit Center, rideshare, rental car, bus/train, and active Great Hall construction notes.',
+    layoutSummary:'One main terminal with remote concourses A, B, and C reached primarily by train.',
+    officialMapResource:'https://www.flydenver.com/', officialTraversalResource:'https://www.flydenver.com/connections',
+    currentAdvisory:'Great Hall work continues with temporary airline counter moves through mid-2027; roadway advisories can affect Pena Boulevard access.', sourceConfidence:'verified_official_detail',
+    nodes:[n('jeppesen-terminal','Jeppesen Terminal','Terminal'), n('security','Security','Security'), n('concourse-a','Concourse A','A'), n('concourse-b','Concourse B','B'), n('concourse-c','Concourse C','C'), n('baggage-claim','Baggage Claim','Bags'), n('airport-transit-center','Airport Transit Center','Transit'), n('rtd-a-line','RTD A Line Station','RTD'), n('rental-cars','Rental Cars','Rental'), n('rideshare-pickup','Rideshare Pickup','Ride'), n('parking','Parking','Parking')],
+    edges:[
+      edge('jeppesen-terminal','security','walk',5,'Proceed from Jeppesen Terminal to the correct security checkpoint.', officialUnknown),
+      edge('security','concourse-a','train',3,'Take the Train to the Gates to Concourse A.', { ...officialUnknown, systemName:'Train to the Gates', airsideOrLandside:'airside', canMergeWithSameSystem:true }),
+      edge('concourse-a','concourse-b','train',3,'Take the Train to the Gates between Concourses A and B.', { ...officialUnknown, systemName:'Train to the Gates', airsideOrLandside:'airside', canMergeWithSameSystem:true }),
+      edge('concourse-b','concourse-c','train',3,'Take the Train to the Gates between Concourses B and C.', { ...officialUnknown, systemName:'Train to the Gates', airsideOrLandside:'airside', canMergeWithSameSystem:true }),
+      edge('jeppesen-terminal','baggage-claim','walk',5,'Follow baggage claim signs in Jeppesen Terminal.', officialUnknown),
+      edge('baggage-claim','airport-transit-center','walk',5,'Follow signs to the Airport Transit Center.', officialUnknown),
+      edge('airport-transit-center','rtd-a-line','walk',3,'Follow RTD A Line signs.', officialUnknown),
+      edge('airport-transit-center','rental-cars','shuttle',10,'Follow rental car shuttle signs.', { ...officialUnknown, systemName:'Rental Car Shuttle', airsideOrLandside:'landside' }),
+      edge('airport-transit-center','rideshare-pickup','walk',3,'Follow rideshare pickup signs.', officialUnknown),
+      edge('airport-transit-center','parking','walk',5,'Follow parking signs.', officialUnknown),
     ],
-    edges: [
-      // AirTrain loop segments connecting terminals
-      { from: 'Terminal 1', to: 'Terminal 2', mode: 'train', systemName: 'AirTrain', estimatedMinutes: 2, time: 2, frequency: '7–10 min', airsideOrLandside: 'landside', instruction: 'Take the AirTrain between Terminals 1 and 2', canMergeWithSameSystem: true, sourceNote: 'official_map_available_time_unspecified' },
-      { from: 'Terminal 2', to: 'Terminal 4', mode: 'train', systemName: 'AirTrain', estimatedMinutes: 2, time: 2, frequency: '7–10 min', airsideOrLandside: 'landside', instruction: 'Take the AirTrain between Terminals 2 and 4', canMergeWithSameSystem: true, sourceNote: 'official_map_available_time_unspecified' },
-      { from: 'Terminal 4', to: 'Terminal 5', mode: 'train', systemName: 'AirTrain', estimatedMinutes: 2, time: 2, frequency: '7–10 min', airsideOrLandside: 'landside', instruction: 'Take the AirTrain between Terminals 4 and 5', canMergeWithSameSystem: true, sourceNote: 'official_map_available_time_unspecified' },
-      { from: 'Terminal 5', to: 'Terminal 7', mode: 'train', systemName: 'AirTrain', estimatedMinutes: 2, time: 2, frequency: '7–10 min', airsideOrLandside: 'landside', instruction: 'Take the AirTrain between Terminals 5 and 7', canMergeWithSameSystem: true, sourceNote: 'official_map_available_time_unspecified' },
-      { from: 'Terminal 7', to: 'Terminal 8', mode: 'train', systemName: 'AirTrain', estimatedMinutes: 2, time: 2, frequency: '7–10 min', airsideOrLandside: 'landside', instruction: 'Take the AirTrain between Terminals 7 and 8', canMergeWithSameSystem: true, sourceNote: 'official_map_available_time_unspecified' },
-      { from: 'Terminal 8', to: 'Terminal 1', mode: 'train', systemName: 'AirTrain', estimatedMinutes: 3, time: 3, frequency: '7–10 min', airsideOrLandside: 'landside', instruction: 'Take the AirTrain from Terminal 8 back to Terminal 1', canMergeWithSameSystem: true, sourceNote: 'official_map_available_time_unspecified' },
-      // Landside connections from terminals to baggage claim
-      { from: 'Terminal 1', to: 'Baggage Claim', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'landside', instruction: 'Walk from Terminal 1 to baggage claim', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Terminal 2', to: 'Baggage Claim', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'landside', instruction: 'Walk from Terminal 2 to baggage claim', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Terminal 4', to: 'Baggage Claim', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'landside', instruction: 'Walk from Terminal 4 to baggage claim', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Terminal 5', to: 'Baggage Claim', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'landside', instruction: 'Walk from Terminal 5 to baggage claim', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Terminal 7', to: 'Baggage Claim', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'landside', instruction: 'Walk from Terminal 7 to baggage claim', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Terminal 8', to: 'Baggage Claim', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'landside', instruction: 'Walk from Terminal 8 to baggage claim', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Baggage Claim', to: 'Ground Transportation', mode: 'walk', estimatedMinutes: 3, time: 3, airsideOrLandside: 'landside', instruction: 'Walk to ground transportation', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Ground Transportation', to: 'Parking', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'landside', instruction: 'Walk to parking', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Ground Transportation', to: 'Rideshare Pickup', mode: 'walk', estimatedMinutes: 3, time: 3, airsideOrLandside: 'landside', instruction: 'Walk to the rideshare pickup area', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Ground Transportation', to: 'Subway/LIRR Connection', mode: 'walk', estimatedMinutes: 5, time: 5, airsideOrLandside: 'landside', instruction: 'Walk to the subway/LIRR connection point', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-      { from: 'Ground Transportation', to: 'AirTrain Station', mode: 'walk', estimatedMinutes: 2, time: 2, airsideOrLandside: 'landside', instruction: 'Walk to the AirTrain station', canMergeWithSameSystem: false, sourceNote: 'verified_official_detail' },
-    ],
-    beforeTips: [
-      'Check which terminal your flight operates from; terminals are spread around the loop.',
-      'Take the AirTrain to connect between terminals; it also links to the subway and LIRR.',
-      'Allow extra time due to ongoing construction and AirTrain maintenance.',
-    ],
-    watchTips: [
-      'AirTrain rides are landside; you will need to re‑enter security when connecting flights.',
-      'Some terminals may be closed or undergoing renovation; verify your terminal before travel.',
-      'Ground transportation to Manhattan is via AirTrain + subway or LIRR; plan accordingly.',
-    ],
-    routeNotes:
-      'Use the AirTrain loop for landside transfers between terminals and to connect to subway/LIRR.',
-    transitSystems: ['AirTrain'],
-    securityNotes:
-      'The AirTrain is landside; security screening is required upon entering terminals.',
-    groundTransportationNotes:
-      'Ground transportation is available at each terminal.  The AirTrain connects to Jamaica and Howard Beach stations for subway and rail.',
-    sourceConfidence: 'official_map_available_time_unspecified',
-  },
+    schematic:['jeppesen-terminal','security','concourse-a','concourse-b','concourse-c'],
+    beforeMoveTip:'Check current airline counter locations because Great Hall construction can temporarily move check-in and bag-drop areas.',
+    watchOutTip:'Official connection time was not cleanly extracted in this packet; use the train but verify current signs and construction routing.',
+    securityNotes:'Train to the Gates is the primary inside-security connection between the terminal and concourses.',
+  }),
 
-  /*
-   * Remaining top 20 airports — provide functional placeholders
-   */
-  MCO: { name: 'Orlando International Airport', unsupported: true },
-  LAS: { name: 'Las Vegas Harry Reid International Airport', unsupported: true },
-  CLT: { name: 'Charlotte/Douglas International Airport', unsupported: true },
-  MIA: { name: 'Miami International Airport', unsupported: true },
-  SEA: { name: 'Seattle–Tacoma International Airport', unsupported: true },
-  EWR: { name: 'Newark Liberty International Airport', unsupported: true },
-  SFO: { name: 'San Francisco International Airport', unsupported: true },
-  PHX: { name: 'Phoenix Sky Harbor International Airport', unsupported: true },
-  IAH: { name: 'Houston George Bush Intercontinental Airport', unsupported: true },
-  BOS: { name: 'Boston Logan International Airport', unsupported: true },
-  FLL: { name: 'Fort Lauderdale–Hollywood International Airport', unsupported: true },
-  MSP: { name: 'Minneapolis–Saint Paul International Airport', unsupported: true },
-  LGA: { name: 'New York LaGuardia Airport', unsupported: true },
-  DTW: { name: 'Detroit Metropolitan Wayne County Airport', unsupported: true },
+  ORD: mapAirport({
+    code:'ORD', name:"Chicago O'Hare International Airport", city:'Chicago',
+    summary:'Terminals 1/2/3/5 with airside walking between domestic terminals, ATS landside to terminals/MMF, and Terminal Transfer Bus rules for T5 connections.',
+    layoutSummary:'Terminals 1, 2, and 3 connect airside; Terminal 5 is separated and requires special transfer handling.',
+    officialMapResource:'https://www.flychicago.com/ohare/home/pages/default.aspx', officialTraversalResource:'https://www.flychicago.com/ohare/ServicesAmenities/services/Pages/tbt.aspx',
+    currentAdvisory:'Terminal 1 Terminal Transfer Bus pickup is temporarily relocated from Gate B1 to Gate C18B.', sourceConfidence:'verified_official_detail',
+    nodes:[n('terminal-1','Terminal 1','T1'), n('terminal-2','Terminal 2','T2'), n('terminal-3','Terminal 3','T3'), n('terminal-5','Terminal 5','T5'), n('baggage-claim','Baggage Claim','Bags'), n('multi-modal-facility','Multi-Modal Facility','MMF'), n('cta-blue-line','CTA Blue Line Station','CTA'), n('terminal-transfer-bus','Terminal Transfer Bus Stop','TTB'), n('rideshare-pickup','Rideshare Pickup','Ride'), n('parking','Parking','Parking')],
+    edges:[
+      edge('terminal-1','terminal-2','walk',5,'Follow overhead signs for the airside walkway between Terminals 1 and 2.', officialUnknown),
+      edge('terminal-2','terminal-3','walk',5,'Follow overhead signs for the airside walkway between Terminals 2 and 3.', officialUnknown),
+      ...[['terminal-1','terminal-2'],['terminal-2','terminal-3'],['terminal-3','terminal-5'],['terminal-5','multi-modal-facility']].map(([from,to],idx) => edge(from,to,'train', idx===3?4:2,'Take the Airport Transit System (ATS) between terminals/MMF.', { officialMinutes: null, systemName:'ATS', frequency:'Every 3-5 min during peak hours', operatingHours:'24/7', airsideOrLandside:'landside', canMergeWithSameSystem:true, sourceConfidence:'verified_official_detail', sourceNote:'Official T1 to MMF ride about 10 minutes; per-segment time not specified.' })),
+      edge('terminal-1','terminal-transfer-bus','bus',15,'Use the Terminal Transfer Bus for eligible connecting-passenger transfer service.', { officialMinutes:null, systemName:'Terminal Transfer Bus', frequency:'Every 15 min', operatingHours:'11:30 a.m.-9:30 p.m.', airsideOrLandside:'airside', sourceConfidence:'verified_official_detail', note:'T1 pickup is temporarily at Gate C18B.' }),
+      edge('terminal-transfer-bus','terminal-5','bus',15,'Ride the Terminal Transfer Bus to Terminal 5 during operating hours.', { officialMinutes:null, systemName:'Terminal Transfer Bus', frequency:'Every 15 min', operatingHours:'11:30 a.m.-9:30 p.m.', airsideOrLandside:'airside', sourceConfidence:'verified_official_detail' }),
+      ...['terminal-1','terminal-2','terminal-3','terminal-5'].map((terminal) => edge(terminal,'baggage-claim','walk',5,'Follow baggage claim signs.', officialUnknown)),
+      edge('baggage-claim','multi-modal-facility','train',10,'Use ATS or signs to reach the Multi-Modal Facility.', { officialMinutes:10, systemName:'ATS', airsideOrLandside:'landside', frequency:'Every 3-5 min during peak hours', sourceConfidence:'verified_official_detail' }),
+      edge('multi-modal-facility','cta-blue-line','walk',3,'Follow CTA Blue Line signs.', officialUnknown),
+      edge('multi-modal-facility','rideshare-pickup','walk',4,'Follow rideshare pickup signs.', officialUnknown),
+      edge('multi-modal-facility','parking','walk',5,'Follow parking signs.', officialUnknown),
+    ],
+    schematic:['terminal-1','terminal-2','terminal-3','terminal-5','multi-modal-facility'],
+    beforeMoveTip:'Identify whether your transfer qualifies for the Terminal Transfer Bus. If not, plan for ATS landside movement and TSA re-screening.',
+    watchOutTip:'After-hours T5 to T1/T2/T3 transfers require exiting security, riding ATS, and re-clearing TSA.',
+    securityNotes:'Terminals 1/2/3 connect airside. ATS is landside. Terminal Transfer Bus has operating hours and specific pickup points.',
+  }),
+
+  JFK: mapAirport({
+    code:'JFK', name:'New York John F. Kennedy International Airport', city:'New York', summary:'Terminals 1/4/5/7/8 with AirTrain, public transit, rideshare, parking, and redevelopment caveats pending manual official verification.', layoutSummary:'Separate terminals around the AirTrain loop.', officialMapResource:'https://www.jfkairport.com/airport-maps', officialTraversalResource:'https://www.jfkairport.com/transportation/airtrain', currentAdvisory:'Official pages exist but need manual verification for current terminal operations and redevelopment detours before publication-grade logic.', sourceConfidence:'basic_safe_guidance',
+    nodes:[n('terminal-1','Terminal 1','T1'),n('terminal-4','Terminal 4','T4'),n('terminal-5','Terminal 5','T5'),n('terminal-7','Terminal 7','T7'),n('terminal-8','Terminal 8','T8'),n('baggage-claim','Baggage Claim','Bags'),n('airtrain-station','AirTrain Station','AirTrain'),n('jamaica-station','Jamaica Station / LIRR / Subway','Jamaica'),n('howard-beach-station','Howard Beach Station / Subway','Howard'),n('rideshare-pickup','Rideshare Pickup','Ride'),n('parking','Parking','Parking')],
+    edges:[...[['terminal-1','terminal-4'],['terminal-4','terminal-5'],['terminal-5','terminal-7'],['terminal-7','terminal-8']].map(([from,to])=>edge(from,to,'train',4,'Use AirTrain JFK for terminal-to-terminal movement.',{...officialUnknown,systemName:'AirTrain JFK',airsideOrLandside:'landside',canMergeWithSameSystem:true,note:'Pending manual official verification of current AirTrain stop order and redevelopment detours.'})), ...['terminal-1','terminal-4','terminal-5','terminal-7','terminal-8'].map((terminal)=>edge(terminal,'baggage-claim','walk',5,'Follow baggage claim signs.',officialUnknown)), edge('baggage-claim','rideshare-pickup','walk',5,'Follow rideshare pickup signs.',officialUnknown), edge('baggage-claim','parking','walk',5,'Follow parking signs.',officialUnknown), edge('airtrain-station','jamaica-station','train',12,'Take AirTrain toward Jamaica Station for LIRR/subway connections.',{...officialUnknown,systemName:'AirTrain JFK',airsideOrLandside:'landside'}), edge('airtrain-station','howard-beach-station','train',12,'Take AirTrain toward Howard Beach for subway connections.',{...officialUnknown,systemName:'AirTrain JFK',airsideOrLandside:'landside'}), edge('terminal-4','airtrain-station','walk',3,'Follow AirTrain signs.',officialUnknown)],
+    schematic:['terminal-1','terminal-4','terminal-5','terminal-7','terminal-8'], beforeMoveTip:'Confirm current terminal operations and redevelopment detours directly from JFK official pages before moving.', watchOutTip:'AirTrain is landside; plan for TSA re-screening when changing terminals.', securityNotes:'Terminal-to-terminal AirTrain movement is landside and can require re-screening.',
+  }),
+
+  MCO: mapAirport({
+    code:'MCO', name:'Orlando International Airport', city:'Orlando', summary:'Terminals A/B/C with Airsides 1-4, Gate Links, Terminal Link to Terminal C/Intermodal Terminal, Brightline, shuttles, rideshare, and rental cars.', layoutSummary:'Terminals A/B connect to Airsides 1-4; Terminal C connects by Terminal Link and to the Intermodal/Brightline area.', officialMapResource:'https://www.flymco.com/', officialTraversalResource:'https://www.flymco.com/', currentAdvisory:'Official site was source-linked but not fully text-extractable; Gate Link replacement project needs manual verification.', sourceConfidence:'basic_safe_guidance',
+    nodes:[n('terminal-a','Terminal A','A'),n('terminal-b','Terminal B','B'),n('terminal-c','Terminal C','C'),n('airside-1','Airside 1','Airside 1'),n('airside-2','Airside 2','Airside 2'),n('airside-3','Airside 3','Airside 3'),n('airside-4','Airside 4','Airside 4'),n('intermodal-terminal','Intermodal Terminal / Brightline','Brightline'),n('baggage-claim','Baggage Claim','Bags'),n('ground-transportation','Ground Transportation','Ground'),n('rental-cars','Rental Cars','Rental'),n('rideshare-pickup','Rideshare Pickup','Ride'),n('parking','Parking','Parking')],
+    edges:[edge('terminal-a','terminal-b','walk',2,'Use A/B terminal connector signage.',officialUnknown),edge('terminal-b','terminal-c','train',4,'Use Terminal Link toward Terminal C.',{...officialUnknown,systemName:'Terminal Link',airsideOrLandside:'landside',canMergeWithSameSystem:true,note:'Official time not extracted; verify live signs.'}),edge('terminal-c','intermodal-terminal','walk',5,'Follow Intermodal Terminal / Brightline signs.',officialUnknown),...[['terminal-a','airside-1'],['terminal-a','airside-2'],['terminal-b','airside-3'],['terminal-b','airside-4']].map(([from,to])=>edge(from,to,'train',5,'Use the Gate Link people mover between terminal and airside.',{...officialUnknown,systemName:'Gate Link',airsideOrLandside:'airside',note:'Gate Link replacement project may affect routing.'})),...['terminal-a','terminal-b','terminal-c'].map((terminal)=>edge(terminal,'baggage-claim','walk',5,'Follow baggage claim signs.',officialUnknown)),edge('baggage-claim','ground-transportation','walk',3,'Follow ground transportation signs.',officialUnknown),edge('ground-transportation','rental-cars','walk',4,'Follow rental car signs.',officialUnknown),edge('ground-transportation','rideshare-pickup','walk',3,'Follow rideshare pickup signs.',officialUnknown),edge('ground-transportation','parking','walk',5,'Follow parking signs.',officialUnknown)],
+    schematic:['terminal-a','terminal-b','terminal-c','intermodal-terminal'], beforeMoveTip:'Confirm whether you need Terminal A/B, Terminal C, an Airside, or Brightline/Intermodal before moving.', watchOutTip:'Gate Link replacement work and manually verified official details are needed before treating timings as definitive.', securityNotes:'Gate Link movements are terminal-to-airside; Terminal Link/Intermodal movements may be landside depending on your route.',
+  }),
+
+  LAS: mapAirport({
+    code:'LAS', name:'Las Vegas Harry Reid International Airport', city:'Las Vegas', summary:'Terminal 1, Terminal 3, D Gates, trams, inter-terminal shuttle, rideshare, taxi, rental cars, buses, and shuttles.', layoutSummary:'Terminal 1 and Terminal 3 with D Gates reached by tram connections and landside inter-terminal shuttle.', officialMapResource:'https://harryreidairport.com/', officialTraversalResource:'https://harryreidairport.com/', currentAdvisory:'No transfer outage extracted; keep parking and security pages live-linked.', sourceConfidence:'verified_official_detail',
+    nodes:[n('terminal-1','Terminal 1','T1'),n('terminal-3','Terminal 3','T3'),n('d-gates','D Gates','D'),n('baggage-claim','Baggage Claim','Bags'),n('ground-transportation','Ground Transportation','Ground'),n('rideshare-pickup','Rideshare Pickup','Ride'),n('rental-cars','Rental Cars','Rental'),n('parking','Parking','Parking')],
+    edges:[edge('terminal-1','d-gates','tram',5,'Use the tram connection between Terminal 1 and D Gates.',{...officialUnknown,systemName:'LAS Tram',airsideOrLandside:'airside',canMergeWithSameSystem:true}),edge('d-gates','terminal-3','tram',5,'Use the tram connection between D Gates and Terminal 3.',{...officialUnknown,systemName:'LAS Tram',airsideOrLandside:'airside',canMergeWithSameSystem:true}),edge('terminal-1','terminal-3','shuttle',15,'Use the courtesy inter-terminal shuttle between Terminals 1 and 3.',{...officialUnknown,systemName:'Inter-terminal Shuttle',airsideOrLandside:'landside',frequency:'Prior research indicates about every 20-30 min; current page frequency needs verification.'}),...['terminal-1','terminal-3'].map((terminal)=>edge(terminal,'baggage-claim','walk',5,'Follow baggage claim signs.',officialUnknown)),edge('baggage-claim','ground-transportation','walk',3,'Follow ground transportation signs.',officialUnknown),edge('ground-transportation','rideshare-pickup','walk',3,'Follow rideshare signs.',officialUnknown),edge('ground-transportation','rental-cars','shuttle',8,'Use rental car shuttle signs.',{...officialUnknown,systemName:'Rental Car Shuttle',airsideOrLandside:'landside'}),edge('ground-transportation','parking','walk',5,'Follow parking signs.',officialUnknown)],
+    schematic:['terminal-1','d-gates','terminal-3'], beforeMoveTip:'Know whether your gate is in Terminal 1, Terminal 3, or D Gates before choosing tram versus shuttle.', watchOutTip:'Inter-terminal shuttle frequency should be verified from the specific official system page before showing firm timing.', securityNotes:'Tram movements to/from D Gates can be airside; inter-terminal shuttle is landside.',
+  }),
+
+  CLT: mapAirport({
+    code:'CLT', name:'Charlotte Douglas International Airport', city:'Charlotte', summary:'Walkable concourse-and-security layout with Concourses A/B/C/D/E, baggage, ground transportation, accessibility and construction pages.', layoutSummary:'Single terminal campus with concourses A-E connected by walking routes.', officialMapResource:'https://www.cltairport.com/', officialTraversalResource:'https://www.cltairport.com/', currentAdvisory:'Construction projects are a first-class official source and should be checked before travel.', sourceConfidence:'verified_official_detail',
+    nodes:[n('terminal','Main Terminal','Terminal'),n('security','Security','Security'),n('concourse-a','Concourse A','A'),n('concourse-b','Concourse B','B'),n('concourse-c','Concourse C','C'),n('concourse-d','Concourse D','D'),n('concourse-e','Concourse E','E'),n('baggage-claim','Baggage Claim','Bags'),n('ground-transportation','Ground Transportation','Ground'),n('rideshare-pickup','Rideshare Pickup','Ride'),n('rental-cars','Rental Cars','Rental'),n('parking','Parking','Parking')],
+    edges:[edge('terminal','security','walk',4,'Proceed from the main terminal toward security.',officialUnknown),...['concourse-a','concourse-b','concourse-c','concourse-d','concourse-e'].map((c)=>edge('security',c,'walk',6,'Walk from security toward the selected concourse.',officialUnknown)),edge('terminal','baggage-claim','walk',4,'Follow baggage claim signs.',officialUnknown),edge('baggage-claim','ground-transportation','walk',3,'Follow ground transportation signs.',officialUnknown),edge('ground-transportation','rideshare-pickup','walk',3,'Follow rideshare signs.',officialUnknown),edge('ground-transportation','rental-cars','walk',5,'Follow rental car signs.',officialUnknown),edge('ground-transportation','parking','walk',5,'Follow parking signs.',officialUnknown)],
+    schematic:['terminal','security','concourse-a','concourse-b','concourse-c','concourse-d','concourse-e'], beforeMoveTip:'Use the interactive map and current security wait time information before walking to your concourse.', watchOutTip:'Official walk times were not extracted; construction projects can change the best path.', securityNotes:'CLT is primarily a walking airport after security.',
+  }),
+
+  MIA: mapAirport({
+    code:'MIA', name:'Miami International Airport', city:'Miami', summary:'North/Central/South terminal system with Concourse D Skytrain, Level 3 moving walkways, MIA Mover, baggage, car rentals, taxi/ride app, and live transit notice.', layoutSummary:'North, Central, and South terminal areas connected by moving walkways; Concourse D has Skytrain.', officialMapResource:'https://www.miami-airport.com/', officialTraversalResource:'https://www.miami-airport.com/', currentAdvisory:'MIA posted an Orange Line notice requiring transfer at Earlington Heights to reach MIA by Metrorail.', sourceConfidence:'verified_official_detail',
+    nodes:[n('north-terminal','North Terminal / Concourse D','North/D'),n('central-terminal','Central Terminal','Central'),n('south-terminal','South Terminal','South'),n('d-skytrain-west','Concourse D Skytrain West','D West'),n('d-skytrain-east','Concourse D Skytrain East','D East'),n('baggage-claim','Baggage Claim','Bags'),n('ground-transportation','Ground Transportation','Ground'),n('mia-mover','MIA Mover / Rental Car Center','MIA Mover'),n('metrorail','Metrorail / Public Transit','Transit'),n('rideshare-pickup','Taxi / Ride App Pickup','Ride'),n('parking','Parking','Parking')],
+    edges:[edge('north-terminal','central-terminal','walk',8,'Use Level 3 moving walkway signs between North and Central terminal areas.',officialUnknown),edge('central-terminal','south-terminal','walk',8,'Use Level 3 moving walkway signs between Central and South terminal areas.',officialUnknown),edge('north-terminal','d-skytrain-west','train',3,'Use the Concourse D Skytrain within the North Terminal.',{officialMinutes:null,systemName:'Concourse D Skytrain',frequency:'About every 3 min',airsideOrLandside:'airside',canMergeWithSameSystem:true,sourceConfidence:'verified_official_detail'}),edge('d-skytrain-west','d-skytrain-east','train',3,'Stay on the Concourse D Skytrain for the next Concourse D stop.',{officialMinutes:null,systemName:'Concourse D Skytrain',frequency:'About every 3 min',airsideOrLandside:'airside',canMergeWithSameSystem:true,sourceConfidence:'verified_official_detail'}),...['north-terminal','central-terminal','south-terminal'].map((t)=>edge(t,'baggage-claim','walk',5,'Follow baggage claim signs.',officialUnknown)),edge('baggage-claim','ground-transportation','walk',3,'Follow ground transportation signs.',officialUnknown),edge('ground-transportation','mia-mover','train',5,'Follow MIA Mover signs for rental car center and central links.',{...officialUnknown,systemName:'MIA Mover',airsideOrLandside:'landside'}),edge('mia-mover','metrorail','walk',3,'Follow public transit signs.',officialUnknown),edge('ground-transportation','rideshare-pickup','walk',3,'Follow taxi and ride app signs.',officialUnknown),edge('ground-transportation','parking','walk',5,'Follow parking signs.',officialUnknown)],
+    schematic:['north-terminal','central-terminal','south-terminal','mia-mover','metrorail'], beforeMoveTip:'Check whether your route uses Concourse D Skytrain, Level 3 moving walkways, or the MIA Mover before moving.', watchOutTip:'Live transit notices can affect Metrorail access; current packet notes an Orange Line transfer requirement.', securityNotes:'Concourse D Skytrain is airside within Concourse D; MIA Mover and Metrorail links are landside.',
+  }),
+
+  SEA: mapAirport({
+    code:'SEA', name:'Seattle-Tacoma International Airport', city:'Seattle', summary:'Main terminal, concourses, North/South satellites, SEA Underground trains, Link light rail via garage skybridges or Train-to-Plane shuttle.', layoutSummary:'Central terminal and concourses/satellites connected by walking and underground train loops.', officialMapResource:'https://www.portseattle.org/sea-tac', officialTraversalResource:'https://www.portseattle.org/sea-tac', currentAdvisory:'SEA is opening expanded C Concourse space and advises 2 hours domestic / 3 hours international during busy season.', sourceConfidence:'verified_official_detail',
+    nodes:[n('main-terminal','Main Terminal','Main'),n('security','Security','Security'),n('concourse-a','Concourse A','A'),n('concourse-b','Concourse B','B'),n('concourse-c','Concourse C','C'),n('concourse-d','Concourse D','D'),n('north-satellite','North Satellite','N'),n('south-satellite','South Satellite','S'),n('baggage-claim','Baggage Claim','Bags'),n('ground-transportation','Ground Transportation','Ground'),n('link-light-rail','Link Light Rail','Link'),n('rideshare-pickup','Rideshare Pickup','Ride'),n('parking','Parking','Parking')],
+    edges:[edge('main-terminal','security','walk',4,'Proceed toward security screening.',officialUnknown),...['concourse-a','concourse-b','concourse-c','concourse-d'].map((c)=>edge('security',c,'walk',6,'Follow signs to your concourse.',officialUnknown)),edge('concourse-a','south-satellite','train',5,'Use SEA Underground train toward South Satellite.',{...officialUnknown,systemName:'SEA Underground Train',airsideOrLandside:'airside',canMergeWithSameSystem:true}),edge('concourse-b','south-satellite','train',5,'Use SEA Underground train toward South Satellite.',{...officialUnknown,systemName:'SEA Underground Train',airsideOrLandside:'airside',canMergeWithSameSystem:true}),edge('concourse-c','north-satellite','train',5,'Use SEA Underground train toward North Satellite.',{...officialUnknown,systemName:'SEA Underground Train',airsideOrLandside:'airside',canMergeWithSameSystem:true}),edge('concourse-d','north-satellite','train',5,'Use SEA Underground train toward North Satellite.',{...officialUnknown,systemName:'SEA Underground Train',airsideOrLandside:'airside',canMergeWithSameSystem:true}),edge('main-terminal','baggage-claim','walk',4,'Follow baggage claim signs.',officialUnknown),edge('baggage-claim','ground-transportation','walk',3,'Follow ground transportation signs.',officialUnknown),edge('ground-transportation','link-light-rail','walk',8,'Use garage skybridges or Train-to-Plane guidance to reach Link light rail.',officialUnknown),edge('ground-transportation','rideshare-pickup','walk',5,'Follow rideshare pickup signs.',officialUnknown),edge('ground-transportation','parking','walk',5,'Follow parking signs.',officialUnknown)],
+    schematic:['main-terminal','security','concourse-a','concourse-b','concourse-c','concourse-d','north-satellite','south-satellite'], beforeMoveTip:'Check whether your destination is a concourse or satellite; use the SEA Underground train for satellite movements.', watchOutTip:'Modernization and busy-season guidance can affect circulation and recommended arrival time.', securityNotes:'Underground train movements are post-security for concourses and satellites.',
+  }),
+
+  EWR: mapAirport({
+    code:'EWR', name:'Newark Liberty International Airport', city:'Newark', summary:'Terminals A/B/C with AirTrain, NJ Transit/regional rail access, and maintenance advisories pending manual official verification.', layoutSummary:'Three terminals connected by AirTrain and landside roadway/rail links.', officialMapResource:'https://www.newarkairport.com/at-airport/airport-maps', officialTraversalResource:'https://www.newarkairport.com/transportation/airtrain', currentAdvisory:'AirTrain maintenance shutdown notices must be manually verified from the live official page before publication-grade routing.', sourceConfidence:'basic_safe_guidance',
+    nodes:[n('terminal-a','Terminal A','A'),n('terminal-b','Terminal B','B'),n('terminal-c','Terminal C','C'),n('airtrain-station','AirTrain Station','AirTrain'),n('rail-link','NJ Transit / Regional Rail','Rail'),n('baggage-claim','Baggage Claim','Bags'),n('ground-transportation','Ground Transportation','Ground'),n('rental-cars','Rental Cars','Rental'),n('rideshare-pickup','Rideshare Pickup','Ride'),n('parking','Parking','Parking')],
+    edges:[edge('terminal-a','terminal-b','train',6,'Use AirTrain Newark between Terminals A and B.',{...officialUnknown,systemName:'AirTrain Newark',airsideOrLandside:'landside',canMergeWithSameSystem:true,note:'Research packet says terminal trips are under 20 minutes, but current page details need manual verification.'}),edge('terminal-b','terminal-c','train',6,'Use AirTrain Newark between Terminals B and C.',{...officialUnknown,systemName:'AirTrain Newark',airsideOrLandside:'landside',canMergeWithSameSystem:true}),edge('terminal-c','airtrain-station','train',6,'Use AirTrain Newark toward the rail link.',{...officialUnknown,systemName:'AirTrain Newark',airsideOrLandside:'landside',canMergeWithSameSystem:true}),edge('airtrain-station','rail-link','walk',3,'Follow NJ Transit / regional rail signs.',officialUnknown),...['terminal-a','terminal-b','terminal-c'].map((t)=>edge(t,'baggage-claim','walk',5,'Follow baggage claim signs.',officialUnknown)),edge('baggage-claim','ground-transportation','walk',3,'Follow ground transportation signs.',officialUnknown),edge('ground-transportation','rideshare-pickup','walk',3,'Follow rideshare signs.',officialUnknown),edge('ground-transportation','rental-cars','train',6,'Use AirTrain/rental car guidance.',{...officialUnknown,systemName:'AirTrain Newark',airsideOrLandside:'landside'}),edge('ground-transportation','parking','walk',5,'Follow parking signs.',officialUnknown)],
+    schematic:['terminal-a','terminal-b','terminal-c','airtrain-station','rail-link'], beforeMoveTip:'Check current AirTrain maintenance advisories and terminal map before starting.', watchOutTip:'AirTrain movements are landside; confirm whether you need to re-clear TSA.', securityNotes:'AirTrain Newark is landside in this model and can require TSA re-screening.',
+  }),
+
+  SFO: mapAirport({
+    code:'SFO', name:'San Francisco International Airport', city:'San Francisco', summary:'Terminals 1/2/3 and International A/G with AirTrain Red/Blue, BART, rental car center, parking, rideshare, lounges, accessibility, and alerts.', layoutSummary:'Domestic terminals and International terminal areas connected by walking connectors and AirTrain loops.', officialMapResource:'https://www.flysfo.com/', officialTraversalResource:'https://www.flysfo.com/', currentAdvisory:'Official alerts and construction notices should remain live-linked; AirTrain timing needs field-level verification before display.', sourceConfidence:'verified_official_detail',
+    nodes:[n('terminal-1','Terminal 1','T1'),n('terminal-2','Terminal 2','T2'),n('terminal-3','Terminal 3','T3'),n('international-a','International A','Intl A'),n('international-g','International G','Intl G'),n('airtrain-red','AirTrain Red Line','Red'),n('airtrain-blue','AirTrain Blue Line','Blue'),n('bart-station','BART Station','BART'),n('rental-car-center','Rental Car Center','Rental'),n('baggage-claim','Baggage Claim','Bags'),n('rideshare-pickup','Rideshare Pickup','Ride'),n('parking','Parking','Parking')],
+    edges:[edge('terminal-1','terminal-2','walk',5,'Use posted terminal connector signs.',officialUnknown),edge('terminal-2','terminal-3','walk',5,'Use posted terminal connector signs.',officialUnknown),edge('terminal-3','international-g','walk',6,'Use posted connector signs toward International G.',officialUnknown),edge('terminal-1','international-a','walk',6,'Use posted connector signs toward International A.',officialUnknown),...[['terminal-1','terminal-2'],['terminal-2','terminal-3'],['terminal-3','international-g'],['international-g','international-a']].map(([from,to])=>edge(from,to,'train',3,'Use AirTrain Red Line for terminal loop movement.',{...officialUnknown,systemName:'AirTrain Red Line',airsideOrLandside:'landside',canMergeWithSameSystem:true,note:'Prior research notes Red loop about 9 min; packet says timing still needs field-level extraction.'})),edge('international-a','airtrain-blue','train',5,'Use AirTrain Blue Line for rental car and parking connections.',{...officialUnknown,systemName:'AirTrain Blue Line',airsideOrLandside:'landside',canMergeWithSameSystem:true,note:'Prior research notes Blue loop about 25 min; packet says timing still needs field-level extraction.'}),edge('airtrain-blue','rental-car-center','train',5,'Stay on AirTrain Blue Line to the Rental Car Center.',{...officialUnknown,systemName:'AirTrain Blue Line',airsideOrLandside:'landside',canMergeWithSameSystem:true}),edge('international-g','bart-station','walk',3,'Follow BART signs.',officialUnknown),...['terminal-1','terminal-2','terminal-3','international-a','international-g'].map((t)=>edge(t,'baggage-claim','walk',5,'Follow baggage claim signs.',officialUnknown)),edge('baggage-claim','rideshare-pickup','walk',4,'Follow rideshare pickup signs.',officialUnknown),edge('baggage-claim','parking','walk',5,'Follow parking signs.',officialUnknown)],
+    schematic:['terminal-1','terminal-2','terminal-3','international-g','international-a','rental-car-center'], beforeMoveTip:'Confirm whether walking connector, AirTrain Red, AirTrain Blue, or BART is the correct system for your trip.', watchOutTip:'AirTrain timings should be verified from the current SFO AirTrain page before displaying a specific duration.', securityNotes:'AirTrain is landside; some terminal connectors may be airside depending on terminal pair and airline.',
+  }),
+
+  PHX: mapAirport({
+    code:'PHX', name:'Phoenix Sky Harbor International Airport', city:'Phoenix', summary:'Terminals 3/4 with PHX Sky Train 24/7 connecting terminals, rental car center, parking, and Valley Metro Rail.', layoutSummary:'Active passenger terminals are Terminal 3 and Terminal 4, connected to campus facilities by PHX Sky Train.', officialMapResource:'https://www.skyharbor.com/', officialTraversalResource:'https://www.skyharbor.com/', currentAdvisory:'Roadway restrictions are meaningful routing variables and should stay live-linked.', sourceConfidence:'verified_official_detail',
+    nodes:[n('terminal-3','Terminal 3','T3'),n('terminal-4','Terminal 4','T4'),n('sky-train-station','PHX Sky Train Station','SkyTrain'),n('rental-car-center','Rental Car Center','Rental'),n('east-economy-parking','East Economy Parking','Parking'),n('valley-metro-rail','44th Street / Valley Metro Rail','Rail'),n('baggage-claim','Baggage Claim','Bags'),n('ground-transportation','Ground Transportation','Ground'),n('rideshare-pickup','Rideshare Pickup','Ride')],
+    edges:[edge('terminal-3','terminal-4','train',4,'Use PHX Sky Train between Terminals 3 and 4.',{...officialUnknown,systemName:'PHX Sky Train',operatingHours:'24/7',airsideOrLandside:'landside',canMergeWithSameSystem:true}),edge('terminal-4','east-economy-parking','train',4,'Use PHX Sky Train toward East Economy Parking.',{...officialUnknown,systemName:'PHX Sky Train',operatingHours:'24/7',airsideOrLandside:'landside',canMergeWithSameSystem:true}),edge('east-economy-parking','rental-car-center','train',6,'Stay on PHX Sky Train toward the Rental Car Center.',{...officialUnknown,systemName:'PHX Sky Train',operatingHours:'24/7',airsideOrLandside:'landside',canMergeWithSameSystem:true}),edge('terminal-4','valley-metro-rail','train',8,'Use PHX Sky Train to reach 44th Street / Valley Metro Rail.',{...officialUnknown,systemName:'PHX Sky Train',operatingHours:'24/7',airsideOrLandside:'landside',canMergeWithSameSystem:true}),...['terminal-3','terminal-4'].map((t)=>edge(t,'baggage-claim','walk',5,'Follow baggage claim signs.',officialUnknown)),edge('baggage-claim','ground-transportation','walk',3,'Follow ground transportation signs.',officialUnknown),edge('ground-transportation','rideshare-pickup','walk',3,'Follow rideshare signs.',officialUnknown),edge('ground-transportation','sky-train-station','walk',4,'Follow PHX Sky Train signs.',officialUnknown)],
+    schematic:['terminal-3','terminal-4','east-economy-parking','rental-car-center','valley-metro-rail'], beforeMoveTip:'Terminal 4 gates are reachable through any checkpoint according to the packet; still confirm current checkpoint status.', watchOutTip:'Roadway restrictions can affect pickup/dropoff and parking access.', securityNotes:'PHX Sky Train is landside and connects terminals with parking, rental car, and Valley Metro Rail.',
+  }),
+
+  IAH: mapAirport({
+    code:'IAH', name:'Houston George Bush Intercontinental Airport', city:'Houston', summary:'Terminals A/B/C/D/E with Skyway airside, Subway landside, international arrivals processing in Terminal E, and redevelopment overlay.', layoutSummary:'Five-terminal campus with separate airside Skyway and landside Subway systems.', officialMapResource:'https://www.fly2houston.com/iah', officialTraversalResource:'https://www.fly2houston.com/iah', currentAdvisory:'Redevelopment and Terminal E international arrivals hall changes should remain preserved in the route overlay.', sourceConfidence:'verified_official_detail',
+    nodes:[n('terminal-a','Terminal A','A'),n('terminal-b','Terminal B','B'),n('terminal-c','Terminal C','C'),n('terminal-d-e','Terminal D/E','D/E'),n('terminal-e-arrivals','Terminal E International Arrivals Hall','E Arrivals'),n('baggage-claim','Baggage Claim','Bags'),n('ground-transportation','Ground Transportation','Ground'),n('metro-bus','METRO / Downtown Direct','METRO'),n('rideshare-pickup','Rideshare Pickup','Ride'),n('parking','Parking','Parking')],
+    edges:[edge('terminal-a','terminal-b','train',3,'Use Skyway inside security between Terminals A and B.',{officialMinutes:3,systemName:'Skyway',frequency:'Every 2 min',airsideOrLandside:'airside',canMergeWithSameSystem:true,sourceConfidence:'verified_official_detail'}),edge('terminal-b','terminal-c','train',3,'Use Skyway inside security between Terminals B and C.',{officialMinutes:3,systemName:'Skyway',frequency:'Every 2 min',airsideOrLandside:'airside',canMergeWithSameSystem:true,sourceConfidence:'verified_official_detail'}),edge('terminal-c','terminal-d-e','train',3,'Use Skyway inside security between Terminal C and D/E.',{officialMinutes:3,systemName:'Skyway',frequency:'Every 2 min',airsideOrLandside:'airside',canMergeWithSameSystem:true,sourceConfidence:'verified_official_detail',note:'A to D/E travel is about 9 minutes.'}),edge('terminal-a','terminal-b','train',5,'Use the Subway outside security between Terminals A and B.',{...officialUnknown,systemName:'Subway',airsideOrLandside:'landside',canMergeWithSameSystem:true}),edge('terminal-b','terminal-c','train',5,'Use the Subway outside security between Terminals B and C.',{...officialUnknown,systemName:'Subway',airsideOrLandside:'landside',canMergeWithSameSystem:true}),edge('terminal-c','terminal-d-e','train',5,'Use the Subway outside security toward D/E.',{...officialUnknown,systemName:'Subway',airsideOrLandside:'landside',canMergeWithSameSystem:true}),edge('terminal-d-e','terminal-e-arrivals','walk',5,'International passengers proceed through Customs & Immigration in Terminal E international arrivals hall.',officialUnknown),...['terminal-a','terminal-b','terminal-c','terminal-d-e','terminal-e-arrivals'].map((t)=>edge(t,'baggage-claim','walk',5,'Follow baggage claim signs.',officialUnknown)),edge('baggage-claim','ground-transportation','walk',3,'Follow ground transportation signs.',officialUnknown),edge('ground-transportation','metro-bus','walk',4,'Follow METRO or Downtown Direct signs.',officialUnknown),edge('ground-transportation','rideshare-pickup','walk',3,'Follow rideshare signs.',officialUnknown),edge('ground-transportation','parking','walk',5,'Follow parking signs.',officialUnknown)],
+    schematic:['terminal-a','terminal-b','terminal-c','terminal-d-e','terminal-e-arrivals'], beforeMoveTip:'Choose Skyway if you are inside security; choose Subway only if you are landside.', watchOutTip:'International arrivals and Terminal E redevelopment can change route flow; verify signs and processing instructions.', securityNotes:'Skyway is airside. Subway is landside and may require TSA re-screening.',
+  }),
+
+  BOS: mapAirport({
+    code:'BOS', name:'Boston Logan International Airport', city:'Boston', summary:'Terminals A/B/C/E with landside shuttle, Silver Line, B-C post-security connector, rideshare, and Massport details pending manual verification.', layoutSummary:'Four terminals connected by landside shuttle and selected post-security walking connectors.', officialMapResource:'https://www.massport.com/logan-airport', officialTraversalResource:'https://www.massport.com/logan-airport', currentAdvisory:'Official Massport homepage was reachable but needs manual extraction for shuttle and Silver Line details.', sourceConfidence:'basic_safe_guidance',
+    nodes:[n('terminal-a','Terminal A','A'),n('terminal-b','Terminal B','B'),n('terminal-c','Terminal C','C'),n('terminal-e','Terminal E','E'),n('silver-line','MBTA Silver Line','Silver'),n('baggage-claim','Baggage Claim','Bags'),n('ground-transportation','Ground Transportation','Ground'),n('rideshare-pickup','Rideshare Pickup','Ride'),n('rental-cars','Rental Cars','Rental'),n('parking','Parking','Parking')],
+    edges:[edge('terminal-b','terminal-c','walk',5,'Use the B-C post-security connector when eligible.',{...officialUnknown,airsideOrLandside:'airside'}),...[['terminal-a','terminal-b'],['terminal-b','terminal-c'],['terminal-c','terminal-e']].map(([from,to])=>edge(from,to,'shuttle',6,'Use Massport on-airport shuttle between terminals.',{...officialUnknown,systemName:'On-airport Shuttle',airsideOrLandside:'landside',canMergeWithSameSystem:true})),...['terminal-a','terminal-b','terminal-c','terminal-e'].map((t)=>edge(t,'baggage-claim','walk',5,'Follow baggage claim signs.',officialUnknown)),edge('baggage-claim','ground-transportation','walk',3,'Follow ground transportation signs.',officialUnknown),edge('ground-transportation','silver-line','bus',5,'Follow Silver Line signs.',{...officialUnknown,systemName:'MBTA Silver Line',airsideOrLandside:'landside'}),edge('ground-transportation','rideshare-pickup','walk',3,'Follow rideshare signs.',officialUnknown),edge('ground-transportation','rental-cars','shuttle',8,'Use rental car shuttle signs.',{...officialUnknown,systemName:'Rental Car Shuttle'}),edge('ground-transportation','parking','walk',5,'Follow parking signs.',officialUnknown)],
+    schematic:['terminal-a','terminal-b','terminal-c','terminal-e'], beforeMoveTip:'Confirm whether your B-C movement can stay post-security; otherwise use landside shuttle logic.', watchOutTip:'Massport shuttle/Silver Line details need direct live verification before exact timing is displayed.', securityNotes:'B-C has a post-security connector; most other terminal movements are landside shuttle movements.',
+  }),
+
+  FLL: mapAirport({
+    code:'FLL', name:'Fort Lauderdale-Hollywood International Airport', city:'Fort Lauderdale', summary:'Terminals 1/2/3/4 with parking, rental cars, ground transportation, rideshare, disability assistance, and security pages.', layoutSummary:'Four-terminal campus with landside ground transportation and rental car center connections.', officialMapResource:'https://www.broward.org/Airport', officialTraversalResource:'https://www.broward.org/Airport', currentAdvisory:'RCC shuttle, Tri-Rail shuttle, and parking subpage fields still need extraction from specific official pages.', sourceConfidence:'verified_official_detail',
+    nodes:[n('terminal-1','Terminal 1','T1'),n('terminal-2','Terminal 2','T2'),n('terminal-3','Terminal 3','T3'),n('terminal-4','Terminal 4','T4'),n('baggage-claim','Baggage Claim','Bags'),n('ground-transportation','Ground Transportation','Ground'),n('rental-car-center','Rental Car Center','Rental'),n('tri-rail-shuttle','Tri-Rail Shuttle','Tri-Rail'),n('rideshare-pickup','Rideshare Pickup','Ride'),n('parking','Parking','Parking')],
+    edges:[...[['terminal-1','terminal-2'],['terminal-2','terminal-3'],['terminal-3','terminal-4']].map(([from,to])=>edge(from,to,'walk',6,'Use terminal walkway or landside signs between terminals.',officialUnknown)),...['terminal-1','terminal-2','terminal-3','terminal-4'].map((t)=>edge(t,'baggage-claim','walk',5,'Follow baggage claim signs.',officialUnknown)),edge('baggage-claim','ground-transportation','walk',3,'Follow ground transportation signs.',officialUnknown),edge('ground-transportation','rental-car-center','shuttle',6,'Use Rental Car Center signs/shuttle guidance.',{...officialUnknown,systemName:'RCC Shuttle',airsideOrLandside:'landside'}),edge('ground-transportation','tri-rail-shuttle','shuttle',8,'Follow Tri-Rail shuttle signs.',{...officialUnknown,systemName:'Tri-Rail Shuttle',airsideOrLandside:'landside'}),edge('ground-transportation','rideshare-pickup','walk',3,'Follow rideshare pickup/dropoff signs.',officialUnknown),edge('ground-transportation','parking','walk',5,'Follow parking signs.',officialUnknown)],
+    schematic:['terminal-1','terminal-2','terminal-3','terminal-4','rental-car-center'], beforeMoveTip:'Check terminal, rideshare, rental car, and parking pages before moving.', watchOutTip:'Rental car and Tri-Rail shuttle details need field extraction from official subpages before exact times are shown.', securityNotes:'FLL routing here is primarily landside between terminals and ground transportation.',
+  }),
+
+  MSP: mapAirport({
+    code:'MSP', name:'Minneapolis-Saint Paul International Airport', city:'Minneapolis-Saint Paul', summary:'Terminal 1 and Terminal 2 with free inter-terminal LRT, accessible shuttle, METRO Blue Line, pickup/dropoff, and ground transportation.', layoutSummary:'Two-terminal airport connected by LRT and accessible shuttle.', officialMapResource:'https://www.mspairport.com/', officialTraversalResource:'https://www.mspairport.com/', currentAdvisory:'No current advisory surfaced in extraction; proceed with route-by-route normalization.', sourceConfidence:'verified_official_detail',
+    nodes:[n('terminal-1','Terminal 1','T1'),n('terminal-2','Terminal 2','T2'),n('lRT-station','Inter-terminal LRT Station','LRT'),n('accessible-shuttle','Accessible Shuttle','Shuttle'),n('metro-blue-line','METRO Blue Line','Blue Line'),n('baggage-claim','Baggage Claim','Bags'),n('ground-transportation','Ground Transportation','Ground'),n('rideshare-pickup','Rideshare Pickup','Ride'),n('parking','Parking','Parking')],
+    edges:[edge('terminal-1','terminal-2','train',8,'Use the free inter-terminal LRT between Terminals 1 and 2.',{officialMinutes:null,systemName:'Inter-terminal LRT',frequency:'Around every 15 min',airsideOrLandside:'landside',sourceConfidence:'verified_official_detail'}),edge('terminal-1','accessible-shuttle','shuttle',10,'Use accessible shuttle if needed.',{officialMinutes:null,systemName:'Accessible Shuttle',frequency:'Every 20 min, 6 a.m.-10 p.m.',airsideOrLandside:'landside',sourceConfidence:'verified_official_detail'}),edge('accessible-shuttle','terminal-2','shuttle',10,'Ride accessible shuttle to the other terminal.',{officialMinutes:null,systemName:'Accessible Shuttle',frequency:'Every 20 min, 6 a.m.-10 p.m.',airsideOrLandside:'landside',sourceConfidence:'verified_official_detail'}),edge('terminal-1','metro-blue-line','train',5,'Follow METRO Blue Line signs.',officialUnknown),edge('terminal-2','metro-blue-line','train',5,'Follow METRO Blue Line signs.',officialUnknown),...['terminal-1','terminal-2'].map((t)=>edge(t,'baggage-claim','walk',5,'Follow baggage claim signs.',officialUnknown)),edge('baggage-claim','ground-transportation','walk',3,'Follow ground transportation signs.',officialUnknown),edge('ground-transportation','rideshare-pickup','walk',3,'Follow pickup/dropoff signs.',officialUnknown),edge('ground-transportation','parking','walk',5,'Follow parking signs.',officialUnknown)],
+    schematic:['terminal-1','terminal-2','metro-blue-line'], beforeMoveTip:'Use the free inter-terminal LRT for Terminal 1 to Terminal 2 movement unless accessibility support is needed.', watchOutTip:'Accessible shuttle hours/frequency should be checked before relying on it.', securityNotes:'Inter-terminal LRT and accessible shuttle are landside in this model.',
+  }),
+
+  LGA: mapAirport({
+    code:'LGA', name:'New York LaGuardia Airport', city:'New York', summary:'Current LGA terminal layout with official maps, pickup/dropoff pages, all-terminal shuttle, Q70/MTA bus links, rideshare, taxi, and parking pending manual official verification.', layoutSummary:'Multi-terminal New York airport without direct rail; shuttle and bus-to-rail patterns are important.', officialMapResource:'https://www.laguardiaairport.com/at-airport/airport-maps', officialTraversalResource:'https://www.laguardiaairport.com/to-from-airport/pickup-and-dropoff', currentAdvisory:'Official pages exist but need manual extraction for terminal names, shuttle stop order, pickup/dropoff, and Q70/MTA links.', sourceConfidence:'basic_safe_guidance',
+    nodes:[n('terminal-a','Terminal A','A'),n('terminal-b','Terminal B','B'),n('terminal-c','Terminal C','C'),n('all-terminals-shuttle','All-Terminals Shuttle','Shuttle'),n('q70-bus','Q70 / MTA Bus Link','Q70'),n('baggage-claim','Baggage Claim','Bags'),n('ground-transportation','Ground Transportation','Ground'),n('rideshare-pickup','Rideshare Pickup','Ride'),n('taxi-stand','Taxi Stand','Taxi'),n('parking','Parking','Parking')],
+    edges:[edge('terminal-a','terminal-b','shuttle',8,'Use the all-terminals shuttle between terminals.',{...officialUnknown,systemName:'All-Terminals Shuttle',operatingHours:'24/7',airsideOrLandside:'landside',canMergeWithSameSystem:true}),edge('terminal-b','terminal-c','shuttle',8,'Use the all-terminals shuttle between terminals.',{...officialUnknown,systemName:'All-Terminals Shuttle',operatingHours:'24/7',airsideOrLandside:'landside',canMergeWithSameSystem:true}),edge('ground-transportation','q70-bus','bus',5,'Follow Q70 / MTA bus signs for bus-to-rail connections.',officialUnknown),...['terminal-a','terminal-b','terminal-c'].map((t)=>edge(t,'baggage-claim','walk',5,'Follow baggage claim signs.',officialUnknown)),edge('baggage-claim','ground-transportation','walk',3,'Follow ground transportation signs.',officialUnknown),edge('ground-transportation','rideshare-pickup','walk',3,'Follow rideshare pickup signs.',officialUnknown),edge('ground-transportation','taxi-stand','walk',3,'Follow taxi signs.',officialUnknown),edge('ground-transportation','parking','walk',5,'Follow parking signs.',officialUnknown)],
+    schematic:['terminal-a','terminal-b','terminal-c','q70-bus'], beforeMoveTip:'Check the current terminal map and pickup/dropoff page before moving; LGA pages require manual verification.', watchOutTip:'No direct rail: use Q70/MTA bus links for public transit connections.', securityNotes:'All-terminal shuttle and Q70/MTA links are landside.',
+  }),
+
+  DTW: mapAirport({
+    code:'DTW', name:'Detroit Metropolitan Wayne County Airport', city:'Detroit', summary:'McNamara and Evans terminals, McNamara Concourse A ExpressTram, B/C concourses, terminal split by airline, accessibility, transportation, parking, rideshare, and shuttle pages.', layoutSummary:'Two-terminal airport: McNamara with Concourses A/B/C and Evans Terminal. ExpressTram serves only McNamara Concourse A.', officialMapResource:'https://www.metroairport.com/', officialTraversalResource:'https://www.metroairport.com/', currentAdvisory:'DTW advises travelers to arrive 2 hours before domestic and 3 hours before international flights.', sourceConfidence:'verified_official_detail',
+    nodes:[n('mcnamara-terminal','McNamara Terminal','McNamara'),n('mcnamara-a-start','McNamara Concourse A - South/Start','A South'),n('mcnamara-a-center','McNamara Concourse A - Center','A Center'),n('mcnamara-a-end','McNamara Concourse A - North/End','A North'),n('mcnamara-bc','McNamara Concourses B/C','B/C'),n('evans-terminal','Evans Terminal','Evans'),n('baggage-claim','Baggage Claim','Bags'),n('ground-transportation','Ground Transportation','Ground'),n('rideshare-pickup','Rideshare Pickup','Ride'),n('parking','Parking','Parking'),n('public-transit','Public Transit / Shuttles','Transit')],
+    edges:[edge('mcnamara-terminal','mcnamara-a-start','walk',5,'Follow McNamara Concourse A signs.',officialUnknown),edge('mcnamara-a-start','mcnamara-a-center','train',3,'Use the ExpressTram within McNamara Concourse A.',{...officialUnknown,systemName:'ExpressTram',airsideOrLandside:'airside',canMergeWithSameSystem:true,note:'ExpressTram does not serve Evans Terminal or B/C concourses.'}),edge('mcnamara-a-center','mcnamara-a-end','train',3,'Stay on ExpressTram within McNamara Concourse A.',{...officialUnknown,systemName:'ExpressTram',airsideOrLandside:'airside',canMergeWithSameSystem:true,note:'ExpressTram does not serve Evans Terminal or B/C concourses.'}),edge('mcnamara-terminal','mcnamara-bc','walk',8,'Walk from McNamara Terminal toward Concourses B/C.',officialUnknown),edge('mcnamara-terminal','evans-terminal','shuttle',12,'Use airport shuttle/ground transportation if changing between McNamara and Evans.',{...officialUnknown,systemName:'Inter-terminal Shuttle',airsideOrLandside:'landside'}),...['mcnamara-terminal','evans-terminal'].map((t)=>edge(t,'baggage-claim','walk',5,'Follow baggage claim signs.',officialUnknown)),edge('baggage-claim','ground-transportation','walk',3,'Follow ground transportation signs.',officialUnknown),edge('ground-transportation','rideshare-pickup','walk',3,'Follow rideshare signs.',officialUnknown),edge('ground-transportation','parking','walk',5,'Follow parking signs.',officialUnknown),edge('ground-transportation','public-transit','walk',5,'Follow public transit/shuttle signs.',officialUnknown)],
+    schematic:['mcnamara-terminal','mcnamara-a-start','mcnamara-a-center','mcnamara-a-end','mcnamara-bc','evans-terminal'], beforeMoveTip:'Confirm your airline terminal first: McNamara and Evans are separate terminal systems.', watchOutTip:'Do not use ExpressTram for Evans Terminal or McNamara B/C concourses; it serves only Concourse A.', securityNotes:'ExpressTram is inside McNamara Concourse A; inter-terminal movement is landside.',
+  }),
 };
+
+export const airportGraphs = airports;

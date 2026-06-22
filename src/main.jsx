@@ -1,13 +1,10 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App';
+import App from './App.jsx';
 import './styles.css';
 
-// Entry point for the React application.  Vite injects this module into
-// index.html via a script tag.  We mount our App component into the
-// root div defined in index.html.
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <App />
-  </React.StrictMode>
+  </React.StrictMode>,
 );

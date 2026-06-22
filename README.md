@@ -1,86 +1,95 @@
 # Airport Navigator MVP
 
-**Airport Navigator** is a mobile‑first web application that helps travellers find their way through major U.S. airports.  The MVP focuses on a clean, confidence‑building user experience: choose your airport, pick where you are and where you need to go, and get a step‑by‑step route with merged transit segments and estimated times.  This version is powered by a 63‑airport research corpus compiled from official airport maps and traversal guides.  For each airport we either provide a fully routed experience using available transit systems or a safe functional guide when detailed timing is not available.
+Airport Navigator is a mobile-first React + Vite web app that helps travelers move through major U.S. airports with confidence. This build keeps the original MVP scope—no deployment and no payment—but expands the app from a small proof of concept into a Top 20 airport navigation dataset using the attached U.S. Airport Navigation Research Packet.
 
-## Features
+## What changed in this build
 
-* **Airport selector** – choose from the top 20 U.S. airports by passenger volume.  Airports that are not yet mapped display a friendly “Basic Guide Mode Coming Soon” message.
-* **Current location and destination selectors** – select your starting point and destination within the airport.  Options include terminals, concourses, baggage claim, ground transportation, parking and more.
-* **Traveller‑friendly routing** – the app uses Dijkstra’s algorithm to compute the quickest path between two points in the airport graph.  A post‑processing formatter merges consecutive segments on the same transit system (e.g. multiple Plane Train hops) into a single, easy‑to‑understand instruction.
-* **Step‑by‑step instructions** – view a clear list of steps with estimated times, notes and helpful tips.  Times derived from official sources are summed; when an official time is not specified the app notes this instead of guessing.
-* **Mobile‑first design** – styled in blue, white and gold with large touch‑friendly buttons and cards inspired by travel guides.
-* **Disclaimer banner** – reminds travellers that airport layouts, gate assignments and travel times can change, and encourages consulting official airport resources and airline apps.
+- Expanded the app to include functional route graphs for all current Top 20 project-scope airports.
+- Replaced guide-only messaging with safe, source-backed functional routing wherever the research packet provided enough official-source structure.
+- Added richer airport metadata: city, layout summary, official map resource, official traversal resource, current advisory, security notes, source confidence, and traveler tips.
+- Added richer edge data: mode, system name, estimated routing weight, official minutes, frequency, operating hours, airside/landside status, traveler instructions, source notes, and merge behavior.
+- Improved route formatting so consecutive same-system movements merge into one customer-friendly step. For example, multiple Plane Train, Skylink, ATS, AirTrain, Sky Train, or Skyway hops display as one instruction with intermediate stops.
+- Preserved “official time not specified” behavior when the research packet did not identify an official transfer time.
+- Added advisories for construction, closure, security, or manual-verification issues where the packet identified them.
 
-## Supported airports
+## Install
 
-| Code | Airport | Status |
+```bash
+npm install
+```
+
+## Run locally
+
+```bash
+npm run dev
+```
+
+Vite will print a local development URL, usually:
+
+```bash
+http://localhost:5173
+```
+
+## Build
+
+```bash
+npm run build
+```
+
+## Airport coverage in this build
+
+| Code | Airport | Build status |
 | --- | --- | --- |
-| **ATL** | Hartsfield–Jackson Atlanta International Airport | Fully routed (Plane Train & tunnel implemented) |
-| **LAX** | Los Angeles International Airport | Fully routed (airside connectors and shuttle implemented) |
-| **DFW** | Dallas/Fort Worth International Airport | Functional routing (Skylink & Terminal Link implemented) |
-| **DEN** | Denver International Airport | Functional routing (Train to Gates implemented) |
-| **ORD** | Chicago O’Hare International Airport | Functional routing (walkway connectors & ATS implemented) |
-| **JFK** | New York John F. Kennedy International Airport | Functional routing (AirTrain loop implemented) |
-| **MCO**, **LAS**, **CLT**, **MIA**, **SEA**, **EWR**, **SFO**, **PHX**, **IAH**, **BOS**, **FLL**, **MSP**, **LGA**, **DTW** | Safe functional guide mode – high‑level orientation only |
+| ATL | Hartsfield-Jackson Atlanta International Airport | Functional route graph, hardened with Domestic/International, Plane Train, pedestrian walkway, MARTA, shuttle, and advisories |
+| LAX | Los Angeles International Airport | Functional route graph, hardened with terminals, LAX-it, Metro Connector, rental-car signage, and Terminal 5 closure advisory |
+| DFW | Dallas/Fort Worth International Airport | Functional route graph, hardened with Skylink and Terminal Link inside/outside security logic |
+| DEN | Denver International Airport | Functional route graph with Jeppesen, A/B/C concourses, Train to Gates, Airport Transit Center, RTD, and construction notes |
+| ORD | Chicago O'Hare International Airport | Functional route graph with T1/T2/T3 airside walking, ATS, TTB rules, MMF, CTA, and temporary TTB stop note |
+| JFK | New York John F. Kennedy International Airport | Functional safe graph using AirTrain and terminal scope; flagged for manual official verification before publication-grade precision |
+| MCO | Orlando International Airport | Functional safe graph using A/B/C, Airsides 1-4, Gate Link, Terminal Link, Intermodal/Brightline; flagged for manual official verification |
+| LAS | Las Vegas Harry Reid International Airport | Functional route graph with T1/T3/D Gates, tram, inter-terminal shuttle, ground transportation, rental cars, rideshare |
+| CLT | Charlotte Douglas International Airport | Functional walkable concourse graph with A/B/C/D/E, security, baggage, and ground transportation |
+| MIA | Miami International Airport | Functional route graph with North/Central/South, Concourse D Skytrain, MIA Mover, Metrorail advisory, and ground transportation |
+| SEA | Seattle-Tacoma International Airport | Functional route graph with main terminal, concourses, satellites, SEA Underground, Link light rail, and busy-season advisory |
+| EWR | Newark Liberty International Airport | Functional safe graph using A/B/C and AirTrain; flagged for manual official verification of maintenance and stop details |
+| SFO | San Francisco International Airport | Functional route graph with terminals, International A/G, AirTrain Red/Blue, BART, rental car center, alerts |
+| PHX | Phoenix Sky Harbor International Airport | Functional route graph with T3/T4, PHX Sky Train, rental car center, parking, Valley Metro Rail, roadway restriction note |
+| IAH | George Bush Intercontinental Airport | Functional route graph with A/B/C/D/E, Skyway, Subway, Terminal E international arrivals, METRO/Downtown Direct |
+| BOS | Boston Logan International Airport | Functional safe graph using A/B/C/E, shuttle, Silver Line, B-C connector; flagged for manual official verification |
+| FLL | Fort Lauderdale-Hollywood International Airport | Functional route graph with terminals, RCC, Tri-Rail shuttle, rideshare, parking, ground transportation |
+| MSP | Minneapolis-Saint Paul International Airport | Functional route graph with T1/T2, inter-terminal LRT, accessible shuttle, METRO Blue Line, ground transportation |
+| LGA | New York LaGuardia Airport | Functional safe graph using current terminal scope, all-terminal shuttle, Q70/MTA links; flagged for manual official verification |
+| DTW | Detroit Metropolitan Wayne County Airport | Functional route graph with McNamara/Evans, ExpressTram only in Concourse A, B/C walking note, public transit and rideshare |
 
-## Getting started
+## Why some timings show “official time not specified”
 
-1. Ensure you have a recent version of **Node.js** installed.
-2. Clone this repository and install dependencies:
+The research packet explicitly instructed that, when official sources do not publish a travel time, the app should not infer one as a customer-facing promise. For graph routing, the app may still use an internal estimated routing weight so Dijkstra can choose a path. The user-facing cards only show official time when the source supports it; otherwise they state “Official time not specified.”
 
-   ```bash
-   npm install
-   ```
+## Route behavior
 
-3. Start the development server:
+Airport Navigator still uses graph-based Dijkstra routing, but now formats results for real travelers instead of showing raw graph hops. Consecutive movements on the same transit system are merged into a single route step when the traveler should stay on the same train, tram, shuttle, or people mover.
 
-   ```bash
-   npm run dev
-   ```
+Examples:
 
-   Vite will start a local server (typically on `http://localhost:5173`) and rebuild the app on changes.
+- ATL Plane Train from Concourse T to Concourse F becomes one step with intermediate stops.
+- DFW Skylink terminal-to-terminal movement becomes one step.
+- ORD ATS and IAH Skyway movements merge when the same system continues across multiple stops.
+- PHX Sky Train, MSP LRT, SFO AirTrain, and SEA Underground are modeled as named systems rather than generic transfers.
 
-4. Open your browser to the provided local URL.  The app should display a hero screen prompting you to select an airport.
+## Important limitations
 
-## Project structure
-
-```
-airport-navigator/
-├── index.html               # Entry point loaded by Vite
-├── package.json             # Project metadata and scripts
-├── vite.config.js           # Vite configuration with React plugin
-├── src/
-│   ├── App.jsx              # Top‑level application component
-│   ├── main.jsx             # React entry point
-│   ├── styles.css           # Global styles and variables
-│   ├── data/
-│   │   └── airportGraphs.js # Graph definitions for each airport
-│   ├── utils/
-│   │   ├── dijkstra.js      # Shortest‑path algorithm
-│   │   └── routeFormatter.js# Human‑friendly route formatting
-│   └── components/
-│       ├── AppShell.jsx     # Layout wrapper and disclaimer
-│       ├── AirportSelector.jsx
-│       ├── CurrentLocationSelector.jsx
-│       ├── DestinationSelector.jsx
-│       ├── RouteResult.jsx
-│       ├── RouteStepCard.jsx
-│       ├── AirportMapSchematic.jsx
-│       └── DisclaimerBanner.jsx
-```
+- This app does not embed copyrighted airport maps.
+- This app does not promise indoor GPS accuracy.
+- This app does not invent gate-to-gate directions.
+- Some airports are source-linked but flagged for manual verification where official pages were JavaScript-heavy or not machine-readable in the research crawl.
+- Airport layouts, gate assignments, construction detours, security access, transportation details, and walking times can change. Always confirm with airport signs, official airport resources, and your airline app.
 
 ## Next steps
 
-The MVP is intentionally simple to get travellers moving quickly.  Future enhancements may include:
-
-* **Payment integration** – prompt users for a one‑time or per‑use fee and persist their purchase in local storage.
-* **Real‑time geolocation** – use the browser’s geolocation API to automatically determine the current airport and location.
-* **Expanded airport coverage** – add detailed graphs for the remaining airports in the research corpus and extend to other hubs worldwide.
-* **Official map API verification** – integrate directly with airport map APIs where available to keep layouts, gate assignments and timings current.
-* **Live alerts and advisories** – surface real‑time construction notices, service changes or delays within the airport.
-* **Schematic maps** – embed simplified SVG maps or diagrams to accompany the text‑based instructions.
-* **Deployment** – deploy the app to a cloud host (e.g. Vercel) and enable offline caching for travellers without reliable data connections.
-
----
-
-This project implements the basic navigation flow described in the accompanying product requirements document【fileciteturn0file0】 and serves as a foundation for more advanced functionality.
+- Push this build to GitHub and confirm repository file updates.
+- Deploy later to Vercel after review.
+- Add payment later after the navigation MVP is stable.
+- Add live official advisories, where source permissions and reliability are clear.
+- Add browser-assisted verification for JFK, EWR, LGA, MCO, and BOS.
+- Add source audit details into the UI or an admin data layer.
+- Add official API/map integration where airports expose stable public data.
