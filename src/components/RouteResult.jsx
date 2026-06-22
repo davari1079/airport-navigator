@@ -1,65 +1,66 @@
-import RouteStepCard from './RouteStepCard.jsx';
+import React from 'react';
+import RouteStepCard from './RouteStepCard';
+import { airportGraphs } from '../data/airportGraphs';
 
-export default function RouteResult({ airport, route, onChangeRoute, onReset }) {
-  const start = airport.nodeMap[route.start]?.label || route.start;
-  const destination = airport.nodeMap[route.destination]?.label || route.destination;
-
+/*
+ * RouteResult renders the navigation result screen.  It shows the
+ * starting point, destination, total estimated time, a list of
+ * RouteStepCards and contextual tips.  A button allows the user to
+ * restart the flow.
+ */
+const RouteResult = ({ route, airport, reset }) => {
+  const graph = airportGraphs[airport];
+  if (route.unsupported) {
+    return (
+      <div className="unsupported">
+        <p className="warning">Functional airport guide</p>
+        <p>
+          Detailed gate‑to‑gate timing may not be specified by official
+          sources.  Use this guide for terminal, transit, baggage claim,
+          rideshare, rental car and ground transportation orientation, then
+          confirm directions with official airport signage and your airline app.
+        </p>
+        <button className="primary-btn" onClick={reset}>Back</button>
+      </div>
+    );
+  }
   return (
-    <section className="route-result">
-      <div className="airport-heading">
-        <span className="airport-code">{airport.code}</span>
-        <div>
-          <h2>Recommended Route</h2>
-          <p>{start} to {destination}</p>
-        </div>
-      </div>
-
-      <div className="summary-grid">
-        <div className="summary-card">
-          <span>Starting point</span>
-          <strong>{start}</strong>
-        </div>
-        <div className="summary-card">
-          <span>Destination</span>
-          <strong>{destination}</strong>
-        </div>
-        <div className="summary-card wide">
-          <span>Estimated travel time</span>
-          <strong>{route.totalMinutes} minutes</strong>
-          <small>Approximate estimate only. Add time for crowds, security, elevators, train waits, and gate changes.</small>
-        </div>
-      </div>
-
-      <div className="path-pill" aria-label="Recommended path">
-        {route.path.map((nodeId) => (
-          <span key={nodeId}>{airport.nodeMap[nodeId]?.shortLabel || airport.nodeMap[nodeId]?.label || nodeId}</span>
+    <div className="route-result">
+      <h2>
+        {route.start} → {route.end}
+      </h2>
+      <p className="total-time">
+        {route.totalTime !== null && route.totalTime !== undefined
+          ? `Estimated time: ${route.totalTime} min`
+          : 'Estimated time: time not specified by official source'}
+      </p>
+      <div className="steps">
+        {route.steps.map((step, idx) => (
+          <RouteStepCard key={idx} step={step} index={idx + 1} />
         ))}
       </div>
-
-      <div className="tip-card">
-        <span>Before you move</span>
-        <p>{airport.beforeMoveTip}</p>
+      <div className="tips">
+        <h3>Before you move</h3>
+        <p>
+          {graph?.beforeTips
+            ? graph.beforeTips[Math.floor(Math.random() * graph.beforeTips.length)]
+            : 'Double‑check your departure time and gate information.'}
+        </p>
+        <h3>Watch out</h3>
+        <p>
+          {graph?.watchTips
+            ? graph.watchTips[Math.floor(Math.random() * graph.watchTips.length)]
+            : 'Allow extra time for security lines or crowds.'}
+        </p>
+        <h3>Reminder</h3>
+        <p>
+          Please confirm directions with official airport signage, maps and your
+          airline app.
+        </p>
       </div>
-
-      <div className="steps-list">
-        {route.steps.map((step, index) => (
-          <RouteStepCard key={`${step.from}-${step.to}-${index}`} step={step} index={index + 1} />
-        ))}
-      </div>
-
-      <div className="tip-card watch">
-        <span>Watch-out tip</span>
-        <p>{airport.watchOutTip}</p>
-      </div>
-
-      <div className="safety-note">
-        <strong>Reminder:</strong> Confirm this route with airport signs, official airport resources, and your airline app before you start moving.
-      </div>
-
-      <div className="button-row">
-        <button className="secondary-button" onClick={onChangeRoute}>Change route</button>
-        <button className="primary-button" onClick={onReset}>Start over</button>
-      </div>
-    </section>
+      <button className="primary-btn" onClick={reset}>Start Over</button>
+    </div>
   );
-}
+};
+
+export default RouteResult;
