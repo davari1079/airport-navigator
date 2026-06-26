@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import AppShell from './components/AppShell.jsx';
 import AirportSelector from './components/AirportSelector.jsx';
+import LanguageSelector from './components/LanguageSelector.jsx';
 import CurrentLocationSelector from './components/CurrentLocationSelector.jsx';
 import DestinationSelector from './components/DestinationSelector.jsx';
 import RouteResult from './components/RouteResult.jsx';
@@ -8,13 +9,16 @@ import AirportMapSchematic from './components/AirportMapSchematic.jsx';
 import { airportGraphs } from './data/airportGraphs.js';
 import { dijkstra } from './utils/dijkstra.js';
 import { formatRoute } from './utils/routeFormatter.js';
+import { getTranslations } from './i18n/translations.js';
 
 export default function App() {
   const [airportCode, setAirportCode] = useState('');
   const [currentLocation, setCurrentLocation] = useState('');
   const [destination, setDestination] = useState('');
   const [route, setRoute] = useState(null);
+  const [language, setLanguage] = useState('en');
 
+  const t = getTranslations(language);
   const airport = useMemo(() => airportGraphs[airportCode], [airportCode]);
 
   function handleAirportChange(code) {
@@ -33,7 +37,7 @@ export default function App() {
       startId: currentLocation,
       destinationId: destination,
     });
-    const formattedRoute = formatRoute(result.edges, airport.nodeMap);
+    const formattedRoute = formatRoute(result.edges, airport.nodeMap, language);
 
     setRoute({
       start: currentLocation,
@@ -54,23 +58,22 @@ export default function App() {
   }
 
   return (
-    <AppShell>
+    <AppShell t={t}>
       <section className="hero-card">
-        <span className="eyebrow">Travel Guide MVP</span>
-        <h1>Airport Navigator</h1>
-        <p>Find your way through major U.S. airports with confidence.</p>
+        <span className="eyebrow">{t.travelGuideMVP}</span>
+        <h1>{t.appTitle}</h1>
+        <p>{t.heroSubtitle}</p>
       </section>
 
-      <AirportSelector value={airportCode} onChange={handleAirportChange} />
+      <LanguageSelector value={language} onChange={setLanguage} t={t} />
+
+      <AirportSelector value={airportCode} onChange={handleAirportChange} t={t} />
 
       {airportCode && airport?.status !== 'mapped' && (
         <section className="guide-card coming-soon-card">
-          <h2>Functional airport guide pending</h2>
-          <p>{airport?.name || airportCode} is listed, but route graph data is not ready yet.</p>
-          <p>
-            This app will not create a fake route. Please check official airport maps, posted signage,
-            security access rules, and your airline app.
-          </p>
+          <h2>{t.functionalGuidePending}</h2>
+          <p>{airport?.name || airportCode} {t.routeGraphNotReady}</p>
+          <p>{t.noFakeRoute}</p>
         </section>
       )}
 
@@ -88,6 +91,7 @@ export default function App() {
             airport={airport}
             value={currentLocation}
             onChange={setCurrentLocation}
+            t={t}
           />
 
           <DestinationSelector
@@ -95,6 +99,7 @@ export default function App() {
             value={destination}
             currentLocation={currentLocation}
             onChange={setDestination}
+            t={t}
           />
 
           <button
@@ -102,19 +107,20 @@ export default function App() {
             disabled={!currentLocation || !destination || currentLocation === destination}
             onClick={handleFindRoute}
           >
-            Calculate Route
+            {t.calculateRoute}
           </button>
         </section>
       )}
 
       {airport?.status === 'mapped' && route && (
         <>
-          <AirportMapSchematic airport={airport} path={route.path} />
+          <AirportMapSchematic airport={airport} path={route.path} t={t} />
           <RouteResult
             airport={airport}
             route={route}
             onChangeRoute={() => setRoute(null)}
             onReset={resetApp}
+            t={t}
           />
         </>
       )}

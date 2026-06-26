@@ -7,7 +7,7 @@ const iconForMode = {
   transfer: '➡️',
 };
 
-export default function RouteStepCard({ step, index }) {
+export default function RouteStepCard({ step, index, t }) {
   return (
     <article className="step-card">
       <div className="step-number">{index}</div>
@@ -17,7 +17,7 @@ export default function RouteStepCard({ step, index }) {
           <strong>{step.modeLabel}</strong>
         </div>
         <p>{step.instruction}</p>
-        <small>Time: {step.timeLabel}</small>
+        <small>{t.time}: {step.timeLabel}</small>
         {step.note && <em>{step.note}</em>}
       </div>
     </article>

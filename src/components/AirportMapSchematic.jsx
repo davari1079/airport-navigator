@@ -1,10 +1,10 @@
-export default function AirportMapSchematic({ airport, path }) {
+export default function AirportMapSchematic({ airport, path, t }) {
   if (!airport.schematic?.length) return null;
 
   return (
     <section className="guide-card schematic-card">
       <div className="schematic-heading">
-        <span>Simple route preview</span>
+        <span>{t.simpleRoutePreview}</span>
         <strong>{airport.code}</strong>
       </div>
       <div className="schematic-track">

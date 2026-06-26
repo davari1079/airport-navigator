@@ -1,9 +1,7 @@
-export default function DisclaimerBanner() {
+export default function DisclaimerBanner({ t }) {
   return (
     <footer className="disclaimer-banner">
-      <strong>Travel reminder:</strong> Airport layouts, gates, security access, transportation details,
-      and walking times can change. Always confirm with posted airport signs, official airport resources,
-      and your airline app.
+      <strong>{t.travelReminder}:</strong> {t.disclaimerText}
     </footer>
   );
 }

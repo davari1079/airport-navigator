@@ -1,10 +1,10 @@
 import DisclaimerBanner from './DisclaimerBanner.jsx';
 
-export default function AppShell({ children }) {
+export default function AppShell({ children, t }) {
   return (
     <main className="app-shell">
       {children}
-      <DisclaimerBanner />
+      <DisclaimerBanner t={t} />
     </main>
   );
 }

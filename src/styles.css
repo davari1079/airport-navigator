@@ -108,6 +108,7 @@ p {
 }
 
 .selector-card label,
+.language-card label,
 .field-group label {
   display: block;
   margin-bottom: 9px;

@@ -1,13 +1,7 @@
-const modeLabels = {
-  walk: 'Walk',
-  train: 'Train / people mover',
-  tram: 'Tram',
-  shuttle: 'Shuttle',
-  bus: 'Bus / shuttle',
-  transfer: 'Transfer',
-};
+import { getTranslations, interpolate } from '../i18n/translations.js';
 
-export function formatRoute(edges, nodeMap = {}) {
+export function formatRoute(edges, nodeMap = {}, language = 'en') {
+  const t = getTranslations(language);
   const steps = [];
   let cursor = 0;
 
@@ -21,7 +15,7 @@ export function formatRoute(edges, nodeMap = {}) {
       nextIndex += 1;
     }
 
-    steps.push(formatStep(group, nodeMap));
+    steps.push(formatStep(group, nodeMap, t));
     cursor = nextIndex;
   }
 
@@ -42,7 +36,7 @@ function shouldMerge(previous, next) {
   return previous.mode !== 'walk';
 }
 
-function formatStep(group, nodeMap) {
+function formatStep(group, nodeMap, t) {
   const first = group[0];
   const last = group[group.length - 1];
   const from = labelFor(first.from, nodeMap);
@@ -52,53 +46,62 @@ function formatStep(group, nodeMap) {
     ? group.reduce((sum, edge) => sum + edge.officialMinutes, 0)
     : null;
   const estimatedMinutes = group.reduce((sum, edge) => sum + getEstimatedMinutes(edge), 0);
-  const systemName = first.systemName || modeLabels[first.mode] || 'connection';
+  const systemName = first.systemName || t.modes[first.mode] || t.modes.move;
   const intermediateStops = group.slice(1).map((edge) => labelFor(edge.from, nodeMap));
-  const notes = buildNotes(group);
+  const notes = buildNotes(group, t);
 
   return {
     from: first.from,
     to: last.to,
     mode: first.mode,
-    modeLabel: first.systemName || modeLabels[first.mode] || 'Move',
+    modeLabel: first.systemName || t.modes[first.mode] || t.modes.move,
     systemName,
     officialMinutes,
     estimatedMinutes,
-    timeLabel: officialMinutes === null ? 'Official time not specified' : `${officialMinutes} minutes`,
-    instruction: buildInstruction({ first, last, from, to, systemName, intermediateStops, nodeMap }),
+    timeLabel: officialMinutes === null ? t.officialTimeNotSpecified : `${officialMinutes} ${t.minutes}`,
+    instruction: buildInstruction({ first, last, from, to, systemName, intermediateStops, nodeMap, t }),
     note: notes.join(' '),
     airsideOrLandside: first.airsideOrLandside || null,
     sourceConfidence: first.sourceConfidence || 'official_map_available_time_unspecified',
   };
 }
 
-function buildInstruction({ first, last, from, to, systemName, intermediateStops, nodeMap }) {
+function buildInstruction({ first, last, from, to, systemName, intermediateStops, nodeMap, t }) {
+  // Existing edge instructions are kept in English today because they are
+  // source-backed data notes. Generated instructions are localized.
   if (first.mode === 'walk' && first.instruction && first.from !== last.to) {
     return replaceNodeIds(first.instruction, nodeMap);
   }
 
   if (first.mode === 'walk') {
-    return `Walk from ${from} to ${to}. Follow posted airport signs and confirm the route before moving.`;
+    return interpolate(t.routePhrases.walkFrom, { from, to });
   }
 
-  let text = `Take the ${systemName} from ${from} to ${to}.`;
+  let text = interpolate(t.routePhrases.takeFrom, { systemName, from, to });
   if (intermediateStops.length > 0) {
-    text += ` Stay on through ${formatStopList(intermediateStops)}. Exit at ${to}.`;
+    text += ` ${interpolate(t.routePhrases.stayOnThrough, { stops: formatStopList(intermediateStops, t.routePhrases.and) })}`;
+    text += ` ${interpolate(t.routePhrases.exitAt, { to })}`;
   }
   return text;
 }
 
-function buildNotes(group) {
+function buildNotes(group, t) {
   const notes = [];
   const first = group[0];
-  if (first.frequency) notes.push(`Frequency: ${first.frequency}.`);
-  if (first.operatingHours) notes.push(`Hours: ${first.operatingHours}.`);
-  if (first.airsideOrLandside) notes.push(`${capitalize(first.airsideOrLandside)} connection.`);
+  if (first.frequency) notes.push(`${t.frequency}: ${first.frequency}.`);
+  if (first.operatingHours) notes.push(`${t.hours}: ${first.operatingHours}.`);
+  if (first.airsideOrLandside) notes.push(`${translateConnectionSide(first.airsideOrLandside, t)} ${t.connection}.`);
   if (first.sourceNote) notes.push(first.sourceNote);
   group.forEach((edge) => {
     if (edge.note && !notes.includes(edge.note)) notes.push(edge.note);
   });
   return notes;
+}
+
+function translateConnectionSide(side, t) {
+  if (side === 'airside') return t.airside;
+  if (side === 'landside') return t.landside;
+  return capitalize(side);
 }
 
 function labelFor(id, nodeMap) {
@@ -111,10 +114,10 @@ function getEstimatedMinutes(edge) {
   return 8;
 }
 
-function formatStopList(stops) {
+function formatStopList(stops, andWord) {
   if (stops.length <= 1) return stops.join('');
-  if (stops.length === 2) return `${stops[0]} and ${stops[1]}`;
-  return `${stops.slice(0, -1).join(', ')}, and ${stops[stops.length - 1]}`;
+  if (stops.length === 2) return `${stops[0]} ${andWord} ${stops[1]}`;
+  return `${stops.slice(0, -1).join(', ')}, ${andWord} ${stops[stops.length - 1]}`;
 }
 
 function replaceNodeIds(text, nodeMap) {
