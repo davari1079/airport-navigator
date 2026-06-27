@@ -1,4 +1,4 @@
-import { getTranslations, interpolate } from '../i18n/translations.js';
+import { displayNodeLabel, getTranslations, interpolate, translateDataNote } from '../i18n/translations.js';
 
 export function formatRoute(edges, nodeMap = {}, language = 'en') {
   const t = getTranslations(language);
@@ -39,15 +39,15 @@ function shouldMerge(previous, next) {
 function formatStep(group, nodeMap, t) {
   const first = group[0];
   const last = group[group.length - 1];
-  const from = labelFor(first.from, nodeMap);
-  const to = labelFor(last.to, nodeMap);
+  const from = labelFor(first.from, nodeMap, t);
+  const to = labelFor(last.to, nodeMap, t);
   const officialKnown = group.every((edge) => typeof edge.officialMinutes === 'number');
   const officialMinutes = officialKnown
     ? group.reduce((sum, edge) => sum + edge.officialMinutes, 0)
     : null;
   const estimatedMinutes = group.reduce((sum, edge) => sum + getEstimatedMinutes(edge), 0);
   const systemName = first.systemName || t.modes[first.mode] || t.modes.move;
-  const intermediateStops = group.slice(1).map((edge) => labelFor(edge.from, nodeMap));
+  const intermediateStops = group.slice(1).map((edge) => labelFor(edge.from, nodeMap, t));
   const notes = buildNotes(group, t);
 
   return {
@@ -59,20 +59,14 @@ function formatStep(group, nodeMap, t) {
     officialMinutes,
     estimatedMinutes,
     timeLabel: officialMinutes === null ? t.officialTimeNotSpecified : `${officialMinutes} ${t.minutes}`,
-    instruction: buildInstruction({ first, last, from, to, systemName, intermediateStops, nodeMap, t }),
+    instruction: buildInstruction({ first, last, from, to, systemName, intermediateStops, t }),
     note: notes.join(' '),
     airsideOrLandside: first.airsideOrLandside || null,
     sourceConfidence: first.sourceConfidence || 'official_map_available_time_unspecified',
   };
 }
 
-function buildInstruction({ first, last, from, to, systemName, intermediateStops, nodeMap, t }) {
-  // Existing edge instructions are kept in English today because they are
-  // source-backed data notes. Generated instructions are localized.
-  if (first.mode === 'walk' && first.instruction && first.from !== last.to) {
-    return replaceNodeIds(first.instruction, nodeMap);
-  }
-
+function buildInstruction({ first, from, to, systemName, intermediateStops, t }) {
   if (first.mode === 'walk') {
     return interpolate(t.routePhrases.walkFrom, { from, to });
   }
@@ -88,12 +82,20 @@ function buildInstruction({ first, last, from, to, systemName, intermediateStops
 function buildNotes(group, t) {
   const notes = [];
   const first = group[0];
-  if (first.frequency) notes.push(`${t.frequency}: ${first.frequency}.`);
-  if (first.operatingHours) notes.push(`${t.hours}: ${first.operatingHours}.`);
-  if (first.airsideOrLandside) notes.push(`${translateConnectionSide(first.airsideOrLandside, t)} ${t.connection}.`);
-  if (first.sourceNote) notes.push(first.sourceNote);
+  if (first.frequency) notes.push(`${t.frequency}: ${translateTimingText(first.frequency, t)}.`);
+  if (first.operatingHours) notes.push(`${t.hours}: ${translateTimingText(first.operatingHours, t)}.`);
+  if (first.airsideOrLandside) notes.push(interpolate(t.connectionSidePhrase, { side: translateConnectionSide(first.airsideOrLandside, t) }) + '.');
+
+  if (group.some((edge) => edge.officialMinutes === null)) {
+    notes.push(t.sourceTimeNotSpecifiedNote);
+  }
+
   group.forEach((edge) => {
-    if (edge.note && !notes.includes(edge.note)) notes.push(edge.note);
+    const translatedSourceNote = translateDataNote(edge.sourceNote, t);
+    const translatedNote = translateDataNote(edge.note, t);
+    [translatedSourceNote, translatedNote].forEach((note) => {
+      if (note && !notes.includes(note)) notes.push(note);
+    });
   });
   return notes;
 }
@@ -104,8 +106,8 @@ function translateConnectionSide(side, t) {
   return capitalize(side);
 }
 
-function labelFor(id, nodeMap) {
-  return nodeMap[id]?.label || id;
+function labelFor(id, nodeMap, t) {
+  return displayNodeLabel(id, nodeMap, t);
 }
 
 function getEstimatedMinutes(edge) {
@@ -117,11 +119,20 @@ function getEstimatedMinutes(edge) {
 function formatStopList(stops, andWord) {
   if (stops.length <= 1) return stops.join('');
   if (stops.length === 2) return `${stops[0]} ${andWord} ${stops[1]}`;
-  return `${stops.slice(0, -1).join(', ')}, ${andWord} ${stops[stops.length - 1]}`;
+  return `${stops.slice(0, -1).join(', ')} ${andWord} ${stops[stops.length - 1]}`;
 }
 
-function replaceNodeIds(text, nodeMap) {
-  return Object.values(nodeMap).reduce((output, node) => output.replaceAll(node.id, node.label), text);
+function translateTimingText(text, t) {
+  if (t.lang === 'en') return text;
+  return String(text)
+    .replaceAll('Every', t.lang === 'es' ? 'Cada' : 'Toutes les')
+    .replaceAll('every', t.lang === 'es' ? 'cada' : 'toutes les')
+    .replaceAll('minutes', t.minutes)
+    .replaceAll('minute', t.lang === 'es' ? 'minuto' : 'minute')
+    .replaceAll('hours', t.hours.toLowerCase())
+    .replaceAll('hour', t.lang === 'es' ? 'hora' : 'heure')
+    .replaceAll('Prior research indicates about', t.lang === 'es' ? 'La investigación previa indica aproximadamente' : 'La recherche précédente indique environ')
+    .replaceAll('current page frequency needs verification', t.lang === 'es' ? 'la frecuencia actual necesita verificación' : 'la fréquence actuelle doit être vérifiée');
 }
 
 function capitalize(value) {

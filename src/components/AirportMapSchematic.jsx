@@ -1,3 +1,5 @@
+import { displayNodeLabel } from '../i18n/translations.js';
+
 export default function AirportMapSchematic({ airport, path, t }) {
   if (!airport.schematic?.length) return null;
 
@@ -10,7 +12,7 @@ export default function AirportMapSchematic({ airport, path, t }) {
       <div className="schematic-track">
         {airport.schematic.map((nodeId) => (
           <div key={nodeId} className={`schematic-node ${path.includes(nodeId) ? 'active' : ''}`}>
-            {airport.nodeMap[nodeId]?.shortLabel || airport.nodeMap[nodeId]?.label || nodeId}
+            {displayNodeLabel(nodeId, airport.nodeMap, t, true)}
           </div>
         ))}
       </div>

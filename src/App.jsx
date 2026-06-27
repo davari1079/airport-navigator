@@ -9,7 +9,7 @@ import AirportMapSchematic from './components/AirportMapSchematic.jsx';
 import { airportGraphs } from './data/airportGraphs.js';
 import { dijkstra } from './utils/dijkstra.js';
 import { formatRoute } from './utils/routeFormatter.js';
-import { getTranslations } from './i18n/translations.js';
+import { displayAirportText, getTranslations } from './i18n/translations.js';
 
 export default function App() {
   const [airportCode, setAirportCode] = useState('');
@@ -20,6 +20,18 @@ export default function App() {
 
   const t = getTranslations(language);
   const airport = useMemo(() => airportGraphs[airportCode], [airportCode]);
+
+  const localizedRoute = useMemo(() => {
+    if (!route || !airport?.nodeMap) return null;
+    const formattedRoute = formatRoute(route.edges, airport.nodeMap, language);
+    return {
+      ...route,
+      totalMinutes: formattedRoute.totalMinutes,
+      fallbackMinutes: formattedRoute.fallbackMinutes ?? route.fallbackMinutes,
+      hasUnknownTime: formattedRoute.hasUnknownTime,
+      steps: formattedRoute.steps,
+    };
+  }, [route, airport, language]);
 
   function handleAirportChange(code) {
     setAirportCode(code);
@@ -37,16 +49,13 @@ export default function App() {
       startId: currentLocation,
       destinationId: destination,
     });
-    const formattedRoute = formatRoute(result.edges, airport.nodeMap, language);
 
     setRoute({
       start: currentLocation,
       destination,
-      totalMinutes: formattedRoute.totalMinutes,
-      fallbackMinutes: formattedRoute.fallbackMinutes ?? result.fallbackMinutes,
-      hasUnknownTime: formattedRoute.hasUnknownTime,
+      fallbackMinutes: result.fallbackMinutes,
       path: result.path,
-      steps: formattedRoute.steps,
+      edges: result.edges,
     });
   }
 
@@ -77,13 +86,13 @@ export default function App() {
         </section>
       )}
 
-      {airport?.status === 'mapped' && !route && (
+      {airport?.status === 'mapped' && !localizedRoute && (
         <section className="guide-card">
           <div className="airport-heading">
             <span className="airport-code">{airport.code}</span>
             <div>
               <h2>{airport.name}</h2>
-              <p>{airport.summary}</p>
+              <p>{displayAirportText(airport, 'summary', t)}</p>
             </div>
           </div>
 
@@ -112,12 +121,12 @@ export default function App() {
         </section>
       )}
 
-      {airport?.status === 'mapped' && route && (
+      {airport?.status === 'mapped' && localizedRoute && (
         <>
-          <AirportMapSchematic airport={airport} path={route.path} t={t} />
+          <AirportMapSchematic airport={airport} path={localizedRoute.path} t={t} />
           <RouteResult
             airport={airport}
-            route={route}
+            route={localizedRoute}
             onChangeRoute={() => setRoute(null)}
             onReset={resetApp}
             t={t}

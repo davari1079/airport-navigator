@@ -1,8 +1,9 @@
+import { displayAirportText, displayNodeLabel } from '../i18n/translations.js';
 import RouteStepCard from './RouteStepCard.jsx';
 
 export default function RouteResult({ airport, route, onChangeRoute, onReset, t }) {
-  const start = airport.nodeMap[route.start]?.label || route.start;
-  const destination = airport.nodeMap[route.destination]?.label || route.destination;
+  const start = displayNodeLabel(route.start, airport.nodeMap, t);
+  const destination = displayNodeLabel(route.destination, airport.nodeMap, t);
   const timeSummary = route.totalMinutes === null
     ? t.timeUnknownSummary
     : `${route.totalMinutes} ${t.minutes}`;
@@ -35,19 +36,19 @@ export default function RouteResult({ airport, route, onChangeRoute, onReset, t 
 
       <div className="path-pill" aria-label={t.recommendedPath}>
         {route.path.map((nodeId) => (
-          <span key={nodeId}>{airport.nodeMap[nodeId]?.shortLabel || airport.nodeMap[nodeId]?.label || nodeId}</span>
+          <span key={nodeId}>{displayNodeLabel(nodeId, airport.nodeMap, t, true)}</span>
         ))}
       </div>
 
       <div className="tip-card">
         <span>{t.beforeMove}</span>
-        <p>{airport.beforeMoveTip}</p>
+        <p>{displayAirportText(airport, 'beforeMoveTip', t)}</p>
       </div>
 
       {airport.securityNotes && (
         <div className="tip-card">
           <span>{t.securityNote}</span>
-          <p>{airport.securityNotes}</p>
+          <p>{displayAirportText(airport, 'securityNotes', t)}</p>
         </div>
       )}
 
@@ -59,12 +60,12 @@ export default function RouteResult({ airport, route, onChangeRoute, onReset, t 
 
       <div className="tip-card watch">
         <span>{t.watchOutTip}</span>
-        <p>{airport.watchOutTip}</p>
+        <p>{displayAirportText(airport, 'watchOutTip', t)}</p>
       </div>
 
       {airport.currentAdvisory && (
         <div className="safety-note">
-          <strong>{t.currentAdvisory}:</strong> {airport.currentAdvisory}
+          <strong>{t.currentAdvisory}:</strong> {displayAirportText(airport, 'currentAdvisory', t)}
         </div>
       )}
 

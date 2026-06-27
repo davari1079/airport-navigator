@@ -1,3 +1,5 @@
+import { displayNodeLabel } from '../i18n/translations.js';
+
 export default function CurrentLocationSelector({ airport, value, onChange, t }) {
   return (
     <div className="field-group">
@@ -10,7 +12,7 @@ export default function CurrentLocationSelector({ airport, value, onChange, t })
         <option value="">{t.selectCurrentLocation}</option>
         {airport.nodes.map((node) => (
           <option key={node.id} value={node.id}>
-            {node.label}
+            {displayNodeLabel(node, airport.nodeMap, t)}
           </option>
         ))}
       </select>
