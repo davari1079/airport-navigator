@@ -12,6 +12,29 @@ Airport Navigator is a mobile-first React + Vite web app that helps travelers mo
 - Preserved “official time not specified” behavior when the research packet did not identify an official transfer time.
 - Added advisories for construction, closure, security, or manual-verification issues where the packet identified them.
 
+
+## Language support
+
+This build supports eight language options:
+
+- English
+- Spanish
+- French
+- Simplified Chinese
+- Portuguese
+- German
+- Japanese
+- Korean
+
+The language layer localizes the main interface, dropdown labels, common airport nodes, short route-preview labels, route-step phrases, timing labels, safety reminders, advisory copy, and known data notes. Official airport names and branded transit-system names may remain unchanged where they function as proper names, such as Plane Train, Skylink, AirTrain, ATS, Skyway, PHX Sky Train, or MIA Mover.
+
+Language QA notes:
+
+- The route is re-formatted from source edges whenever the language changes, preventing stale Spanish/French/etc. route text from appearing after switching languages.
+- Missing official timing remains localized as the language equivalent of “Official time not specified.”
+- Airport-specific long English source copy is replaced with localized safe guidance unless a verified localized phrase exists.
+- A production build was run after this update.
+
 ## Install
 
 ```bash

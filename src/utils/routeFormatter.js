@@ -46,7 +46,7 @@ function formatStep(group, nodeMap, t) {
     ? group.reduce((sum, edge) => sum + edge.officialMinutes, 0)
     : null;
   const estimatedMinutes = group.reduce((sum, edge) => sum + getEstimatedMinutes(edge), 0);
-  const systemName = first.systemName || t.modes[first.mode] || t.modes.move;
+  const systemName = translateSystemName(first.systemName || t.modes[first.mode] || t.modes.move, t);
   const intermediateStops = group.slice(1).map((edge) => labelFor(edge.from, nodeMap, t));
   const notes = buildNotes(group, t);
 
@@ -54,7 +54,7 @@ function formatStep(group, nodeMap, t) {
     from: first.from,
     to: last.to,
     mode: first.mode,
-    modeLabel: first.systemName || t.modes[first.mode] || t.modes.move,
+    modeLabel: systemName,
     systemName,
     officialMinutes,
     estimatedMinutes,
@@ -64,6 +64,13 @@ function formatStep(group, nodeMap, t) {
     airsideOrLandside: first.airsideOrLandside || null,
     sourceConfidence: first.sourceConfidence || 'official_map_available_time_unspecified',
   };
+}
+
+
+function translateSystemName(systemName, t) {
+  if (!systemName) return t.modes.move;
+  if (t.lang === 'en') return systemName;
+  return t.systemNames?.[systemName] || t.nodeLabels?.[systemName] || systemName;
 }
 
 function buildInstruction({ first, from, to, systemName, intermediateStops, t }) {
@@ -123,16 +130,24 @@ function formatStopList(stops, andWord) {
 }
 
 function translateTimingText(text, t) {
-  if (t.lang === 'en') return text;
-  return String(text)
-    .replaceAll('Every', t.lang === 'es' ? 'Cada' : 'Toutes les')
-    .replaceAll('every', t.lang === 'es' ? 'cada' : 'toutes les')
-    .replaceAll('minutes', t.minutes)
-    .replaceAll('minute', t.lang === 'es' ? 'minuto' : 'minute')
-    .replaceAll('hours', t.hours.toLowerCase())
-    .replaceAll('hour', t.lang === 'es' ? 'hora' : 'heure')
-    .replaceAll('Prior research indicates about', t.lang === 'es' ? 'La investigación previa indica aproximadamente' : 'La recherche précédente indique environ')
-    .replaceAll('current page frequency needs verification', t.lang === 'es' ? 'la frecuencia actual necesita verificación' : 'la fréquence actuelle doit être vérifiée');
+  if (!text) return '';
+  const source = String(text);
+  if (t.lang === 'en') return source;
+  if (t.timingText?.[source]) return t.timingText[source];
+
+  if (t.lang === 'es' || t.lang === 'fr') {
+    return source
+      .replaceAll('Every', t.lang === 'es' ? 'Cada' : 'Toutes les')
+      .replaceAll('every', t.lang === 'es' ? 'cada' : 'toutes les')
+      .replaceAll('minutes', t.minutes)
+      .replaceAll('minute', t.lang === 'es' ? 'minuto' : 'minute')
+      .replaceAll('hours', t.hours.toLowerCase())
+      .replaceAll('hour', t.lang === 'es' ? 'hora' : 'heure')
+      .replaceAll('Prior research indicates about', t.lang === 'es' ? 'La investigación previa indica aproximadamente' : 'La recherche précédente indique environ')
+      .replaceAll('current page frequency needs verification', t.lang === 'es' ? 'la frecuencia actual necesita verificación' : 'la fréquence actuelle doit être vérifiée');
+  }
+
+  return t.officialTimeNotSpecified;
 }
 
 function capitalize(value) {
