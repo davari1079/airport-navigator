@@ -4,12 +4,12 @@ import RouteStepCard from './RouteStepCard.jsx';
 export default function RouteResult({ airport, route, onChangeRoute, onReset, t }) {
   const start = displayNodeLabel(route.start, airport.nodeMap, t);
   const destination = displayNodeLabel(route.destination, airport.nodeMap, t);
-  const timeSummary = route.totalMinutes === null
-    ? t.timeUnknownSummary
-    : `${route.totalMinutes} ${t.minutes}`;
+  const timeSummary = route.navigationTime?.label
+    || (route.totalMinutes === null ? t.timeUnknownSummary : `${route.totalMinutes} ${t.minutes}`);
+  const breakdown = route.timingBreakdown;
 
   return (
-    <section className="route-result">
+    <section className="route-result route-result-dynamic">
       <div className="airport-heading">
         <span className="airport-code">{airport.code}</span>
         <div>
@@ -27,17 +27,50 @@ export default function RouteResult({ airport, route, onChangeRoute, onReset, t 
           <span>{t.destinationLabel}</span>
           <strong>{destination}</strong>
         </div>
-        <div className="summary-card wide">
-          <span>{t.travelTime}</span>
+        <div className="summary-card wide navigation-time-card">
+          <span>{t.estimatedNavigationTime}</span>
           <strong>{timeSummary}</strong>
-          <small>{t.timingHelper}</small>
+          <small>{t.timingRangeHelper}</small>
+          {route.timeConfidenceLabel && (
+            <span className={`confidence-badge confidence-${route.timeConfidence || 'estimated'}`}>
+              {t.timeConfidence}: {route.timeConfidenceLabel}
+            </span>
+          )}
         </div>
       </div>
 
-      <div className="path-pill" aria-label={t.recommendedPath}>
-        {route.path.map((nodeId) => (
-          <span key={nodeId}>{displayNodeLabel(nodeId, airport.nodeMap, t, true)}</span>
-        ))}
+      {breakdown && (
+        <div className="timing-breakdown" aria-label={t.timingBreakdown}>
+          <div className="timing-heading">
+            <h3>{t.timingBreakdown}</h3>
+          </div>
+          <div className="timing-grid">
+            <div className="timing-item">
+              <span>{t.walkingTime}</span>
+              <strong>{breakdown.walking.label}</strong>
+            </div>
+            <div className="timing-item">
+              <span>{t.rideTime}</span>
+              <strong>{breakdown.ride.label}</strong>
+            </div>
+            <div className="timing-item">
+              <span>{t.expectedWait}</span>
+              <strong>{breakdown.wait.label}</strong>
+            </div>
+          </div>
+          <p>{t.navigationTimeDisclaimer}</p>
+        </div>
+      )}
+
+      <div className="route-flow" aria-label={t.recommendedPath}>
+        <div className="route-flow-line" aria-hidden="true">
+          <span className="route-flow-plane">✈</span>
+        </div>
+        <div className="path-pill">
+          {route.path.map((nodeId, index) => (
+            <span key={nodeId} style={{ '--pill-index': index }}>{displayNodeLabel(nodeId, airport.nodeMap, t, true)}</span>
+          ))}
+        </div>
       </div>
 
       <div className="tip-card">

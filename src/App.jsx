@@ -29,6 +29,10 @@ export default function App() {
       totalMinutes: formattedRoute.totalMinutes,
       fallbackMinutes: formattedRoute.fallbackMinutes ?? route.fallbackMinutes,
       hasUnknownTime: formattedRoute.hasUnknownTime,
+      navigationTime: formattedRoute.navigationTime,
+      timingBreakdown: formattedRoute.timingBreakdown,
+      timeConfidence: formattedRoute.timeConfidence,
+      timeConfidenceLabel: formattedRoute.timeConfidenceLabel,
       steps: formattedRoute.steps,
     };
   }, [route, airport, language]);
@@ -67,11 +71,25 @@ export default function App() {
   }
 
   return (
-    <AppShell t={t}>
+    <AppShell t={t} airport={airport}>
       <section className="hero-card">
-        <span className="eyebrow">{t.travelGuideMVP}</span>
-        <h1>{t.appTitle}</h1>
-        <p>{t.heroSubtitle}</p>
+        <div className="hero-content">
+          <span className="eyebrow">{t.travelGuideMVP}</span>
+          {airport && (
+            <span className="hero-context" aria-label={`${airport.city} ${airport.code}`}>
+              {airport.city} · {airport.code}
+            </span>
+          )}
+          <h1>{t.appTitle}</h1>
+          <p>{t.heroSubtitle}</p>
+        </div>
+        <div className="hero-scene" aria-hidden="true">
+          <span className="scene-sun" />
+          <span className="scene-terminal" />
+          <span className="scene-runway" />
+          <span className="scene-plane">✈</span>
+          <span className="scene-motif" />
+        </div>
       </section>
 
       <LanguageSelector value={language} onChange={setLanguage} t={t} />

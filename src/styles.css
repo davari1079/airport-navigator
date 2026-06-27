@@ -399,3 +399,693 @@ select:focus {
     grid-template-columns: 1fr 1fr;
   }
 }
+
+.navigation-time-card strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 1.35rem;
+}
+
+.confidence-badge {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 10px;
+  padding: 6px 10px;
+  color: var(--navy);
+  background: var(--sky);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 950;
+  letter-spacing: 0.02em;
+}
+
+.confidence-official,
+.confidence-high {
+  background: var(--gold-soft);
+  border-color: rgba(216, 169, 40, 0.5);
+}
+
+.timing-breakdown {
+  margin: 16px 0;
+  padding: 16px;
+  background: #f8fbff;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+}
+
+.timing-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.timing-heading h3 {
+  margin: 0;
+  color: var(--navy);
+  font-size: 1rem;
+}
+
+
+.timing-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.timing-item {
+  padding: 12px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+
+.timing-item span {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.timing-item strong {
+  color: var(--navy);
+}
+
+.timing-breakdown p {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.step-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin: 8px 0;
+}
+
+.step-meta small {
+  padding: 5px 8px;
+  background: #f2f7fd;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+
+@media (min-width: 640px) {
+  .timing-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Beta visual refresh: dynamic airport theme, glass terminal surfaces, and movement cues */
+:root {
+  --theme-accent: var(--blue);
+  --theme-accent-dark: var(--navy);
+  --theme-accent-soft: var(--sky);
+  --theme-warmth: var(--gold);
+  --theme-glow: rgba(11, 101, 185, 0.24);
+  --theme-sky: #edf8ff;
+  --theme-horizon: #ffffff;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+body {
+  background:
+    radial-gradient(circle at 10% 8%, var(--theme-glow), transparent 24rem),
+    radial-gradient(circle at 90% 20%, rgba(255, 255, 255, 0.8), transparent 28rem),
+    linear-gradient(180deg, var(--theme-sky) 0%, var(--theme-horizon) 46%, #f7fbff 100%);
+}
+
+.app-shell {
+  position: relative;
+  isolation: isolate;
+}
+
+.sky-atmosphere {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    linear-gradient(110deg, rgba(255, 255, 255, 0.52), transparent 38%),
+    radial-gradient(circle at 15% 8%, var(--theme-glow), transparent 24rem),
+    radial-gradient(circle at 84% 14%, color-mix(in srgb, var(--theme-warmth) 25%, transparent), transparent 22rem);
+}
+
+.atmosphere-glow {
+  position: absolute;
+  width: 22rem;
+  height: 22rem;
+  border-radius: 999px;
+  filter: blur(10px);
+  opacity: 0.5;
+  background: var(--theme-glow);
+  animation: ambientDrift 16s var(--ease-out) infinite alternate;
+}
+
+.glow-one { left: -8rem; top: 8rem; }
+.glow-two { right: -10rem; top: 28rem; animation-delay: -5s; }
+
+.atmosphere-flight-path {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: 9rem;
+  height: 1px;
+  opacity: 0.35;
+  background-image: linear-gradient(90deg, transparent 0%, var(--theme-accent) 22%, transparent 58%);
+  transform: rotate(-8deg);
+}
+
+.hero-card,
+.primary-button,
+.step-number {
+  background: linear-gradient(135deg, var(--theme-accent-dark), var(--theme-accent));
+}
+
+.hero-card,
+.guide-card,
+.route-result,
+.summary-card,
+.step-card,
+.tip-card,
+.disclaimer-banner {
+  backdrop-filter: blur(12px);
+  animation: cardEntrance 520ms var(--ease-out) both;
+}
+
+.hero-card {
+  min-height: 208px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(156px, 0.85fr);
+  gap: 12px;
+  align-items: stretch;
+  border: 1px solid color-mix(in srgb, var(--theme-accent-soft) 45%, white);
+  box-shadow: 0 26px 58px color-mix(in srgb, var(--theme-accent-dark) 22%, transparent);
+}
+
+.hero-card::after {
+  display: none;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 2;
+}
+
+.hero-context {
+  display: inline-flex;
+  margin-left: 8px;
+  padding: 8px 12px;
+  color: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.26);
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.hero-scene {
+  position: relative;
+  min-height: 150px;
+  border-radius: 22px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 76% 26%, color-mix(in srgb, var(--theme-warmth) 68%, white), transparent 0 34px, transparent 35px),
+    linear-gradient(180deg, rgba(255,255,255,0.28), rgba(255,255,255,0.08));
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18);
+}
+
+.scene-sun {
+  position: absolute;
+  right: 24px;
+  top: 22px;
+  width: 54px;
+  height: 54px;
+  border-radius: 999px;
+  background: radial-gradient(circle, color-mix(in srgb, var(--theme-warmth) 74%, white), color-mix(in srgb, var(--theme-warmth) 38%, transparent));
+  box-shadow: 0 0 28px color-mix(in srgb, var(--theme-warmth) 65%, transparent);
+  animation: sunGlow 3.8s ease-in-out infinite alternate;
+}
+
+.scene-terminal {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 38px;
+  height: 52px;
+  border-radius: 18px 18px 6px 6px;
+  background:
+    repeating-linear-gradient(90deg, rgba(255,255,255,0.42) 0 8px, transparent 8px 18px),
+    linear-gradient(180deg, rgba(255,255,255,0.34), rgba(255,255,255,0.14));
+  border: 1px solid rgba(255,255,255,0.26);
+}
+
+.scene-terminal::before,
+.scene-terminal::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  width: 38px;
+  height: 72px;
+  border-radius: 12px 12px 4px 4px;
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.3) 0 5px, transparent 5px 10px),
+    rgba(255,255,255,0.16);
+}
+
+.scene-terminal::before { left: 16px; }
+.scene-terminal::after { right: 18px; height: 92px; }
+
+.scene-runway {
+  position: absolute;
+  left: -12%;
+  right: -12%;
+  bottom: 10px;
+  height: 28px;
+  transform: perspective(120px) rotateX(38deg);
+  background:
+    repeating-linear-gradient(90deg, transparent 0 24px, rgba(255,255,255,0.65) 24px 32px, transparent 32px 58px),
+    linear-gradient(90deg, rgba(0,0,0,0.16), rgba(255,255,255,0.12), rgba(0,0,0,0.12));
+  border-radius: 999px;
+}
+
+.scene-plane {
+  position: absolute;
+  left: 8%;
+  top: 18%;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 2.7rem;
+  text-shadow: 0 8px 18px rgba(0,0,0,0.18);
+  animation: planeFloat 6s ease-in-out infinite;
+}
+
+.scene-motif {
+  position: absolute;
+  left: 18px;
+  bottom: 26px;
+  width: 44px;
+  height: 44px;
+  opacity: 0.85;
+  border: 2px solid rgba(255,255,255,0.38);
+  border-radius: 50%;
+}
+
+.airport-heading {
+  position: relative;
+}
+
+.airport-code {
+  position: relative;
+  overflow: hidden;
+  color: var(--theme-accent-dark);
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255,255,255,0.9), transparent 0 28%),
+    linear-gradient(135deg, var(--gold-soft), color-mix(in srgb, var(--theme-warmth) 22%, white));
+  border-color: color-mix(in srgb, var(--theme-warmth) 62%, white);
+  box-shadow: 0 12px 24px color-mix(in srgb, var(--theme-warmth) 18%, transparent);
+}
+
+.airport-code::after {
+  content: "";
+  position: absolute;
+  inset: auto 8px 8px 8px;
+  height: 4px;
+  background: linear-gradient(90deg, transparent, var(--theme-accent), transparent);
+  border-radius: 999px;
+  opacity: 0.55;
+}
+
+.guide-card,
+.route-result {
+  border-color: color-mix(in srgb, var(--theme-accent-soft) 62%, var(--line));
+  box-shadow: 0 20px 45px color-mix(in srgb, var(--theme-accent-dark) 14%, transparent);
+}
+
+.guide-card:hover,
+.route-result:hover {
+  box-shadow: 0 26px 58px color-mix(in srgb, var(--theme-accent-dark) 18%, transparent);
+}
+
+select,
+.primary-button,
+.secondary-button {
+  transition: transform 180ms var(--ease-out), box-shadow 180ms var(--ease-out), border-color 180ms var(--ease-out), background 180ms var(--ease-out);
+}
+
+select:hover,
+.primary-button:not(:disabled):hover,
+.secondary-button:hover {
+  transform: translateY(-1px);
+}
+
+.primary-button:not(:disabled):hover {
+  box-shadow: 0 16px 28px color-mix(in srgb, var(--theme-accent) 28%, transparent);
+}
+
+select:focus {
+  border-color: var(--theme-warmth);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--theme-warmth) 24%, transparent);
+}
+
+.summary-card,
+.tip-card,
+.step-card,
+.timing-breakdown {
+  border-color: color-mix(in srgb, var(--theme-accent-soft) 64%, var(--line));
+}
+
+.navigation-time-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.navigation-time-card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 38%;
+  background:
+    radial-gradient(circle at 80% 30%, color-mix(in srgb, var(--theme-warmth) 22%, transparent), transparent 42%),
+    linear-gradient(110deg, transparent, color-mix(in srgb, var(--theme-accent-soft) 58%, transparent));
+  pointer-events: none;
+}
+
+.confidence-badge {
+  background: color-mix(in srgb, var(--theme-accent-soft) 76%, white);
+  border-color: color-mix(in srgb, var(--theme-accent) 28%, var(--line));
+}
+
+.confidence-official,
+.confidence-high {
+  background: color-mix(in srgb, var(--theme-warmth) 28%, white);
+  border-color: color-mix(in srgb, var(--theme-warmth) 55%, white);
+}
+
+.timing-breakdown {
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--theme-accent-soft) 48%, white), white 58%);
+}
+
+.timing-item {
+  position: relative;
+  overflow: hidden;
+}
+
+.timing-item::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: linear-gradient(180deg, var(--theme-warmth), var(--theme-accent));
+  opacity: 0.72;
+}
+
+.route-preview-card {
+  padding-top: 16px;
+}
+
+.schematic-stage {
+  position: relative;
+  height: 26px;
+  margin: -4px 0 4px;
+  overflow: hidden;
+  border-radius: 999px;
+}
+
+.schematic-runway-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 12px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--theme-accent) 34%, transparent), transparent);
+}
+
+.schematic-moving-plane {
+  position: absolute;
+  top: 0;
+  left: 6%;
+  color: var(--theme-accent);
+  animation: schematicPlane 7s ease-in-out infinite;
+}
+
+.schematic-track {
+  padding: 4px 2px 12px;
+  scroll-behavior: smooth;
+}
+
+.schematic-node {
+  position: relative;
+  transition: transform 200ms var(--ease-out), background 200ms var(--ease-out), color 200ms var(--ease-out), border-color 200ms var(--ease-out);
+}
+
+.schematic-node.active {
+  transform: translateY(-2px);
+  color: var(--theme-accent-dark);
+  background: color-mix(in srgb, var(--theme-warmth) 22%, white);
+  border-color: var(--theme-warmth);
+  animation: nodePop 420ms var(--ease-out) both;
+  animation-delay: calc(var(--node-index, 0) * 45ms);
+}
+
+.route-flow {
+  margin: 16px 0;
+}
+
+.route-flow-line {
+  position: relative;
+  height: 24px;
+  margin-bottom: 2px;
+  overflow: hidden;
+  border-radius: 999px;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 28px, color-mix(in srgb, var(--theme-accent) 18%, transparent) 28px 36px, transparent 36px 58px);
+}
+
+.route-flow-plane {
+  position: absolute;
+  top: 0;
+  left: 4%;
+  color: var(--theme-accent);
+  animation: routePlane 6.5s ease-in-out infinite;
+}
+
+.path-pill span {
+  color: var(--theme-accent-dark);
+  background: color-mix(in srgb, var(--theme-accent-soft) 72%, white);
+  animation: chipEntrance 300ms var(--ease-out) both;
+  animation-delay: calc(var(--pill-index, 0) * 35ms);
+}
+
+.step-card {
+  position: relative;
+  overflow: hidden;
+  transition: transform 180ms var(--ease-out), box-shadow 180ms var(--ease-out);
+}
+
+.step-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 5px;
+  background: linear-gradient(180deg, var(--theme-warmth), var(--theme-accent));
+  opacity: 0.65;
+}
+
+.step-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px color-mix(in srgb, var(--theme-accent-dark) 12%, transparent);
+}
+
+.step-mode-train .step-number,
+.step-mode-tram .step-number,
+.step-mode-shuttle .step-number,
+.step-mode-bus .step-number {
+  background: linear-gradient(135deg, var(--theme-warmth), var(--theme-accent));
+}
+
+.step-mode strong,
+.summary-card strong,
+.airport-heading h2,
+.schematic-heading strong {
+  color: var(--theme-accent-dark);
+}
+
+.safety-note {
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--theme-warmth) 26%, white), #fff8df);
+  border: 1px solid color-mix(in srgb, var(--theme-warmth) 42%, white);
+}
+
+.disclaimer-banner {
+  background: rgba(255,255,255,0.82);
+}
+
+/* Airport motifs: subtle, CSS-only visual cues by selected airport */
+.theme-den .scene-motif,
+.theme-sea .scene-motif,
+.theme-msp .scene-motif {
+  width: 80px;
+  height: 40px;
+  border-radius: 4px;
+  border: 0;
+  background:
+    linear-gradient(135deg, transparent 48%, rgba(255,255,255,0.62) 49% 52%, transparent 53%),
+    linear-gradient(45deg, transparent 48%, rgba(255,255,255,0.46) 49% 52%, transparent 53%);
+  transform: rotate(0deg);
+}
+
+.theme-lax .scene-motif,
+.theme-mco .scene-motif,
+.theme-mia .scene-motif,
+.theme-fll .scene-motif {
+  width: 14px;
+  height: 64px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.55);
+  box-shadow: 18px -8px 0 -2px rgba(255,255,255,0.38), -18px -4px 0 -4px rgba(255,255,255,0.32);
+}
+
+.theme-lax .scene-motif::before,
+.theme-mco .scene-motif::before,
+.theme-mia .scene-motif::before,
+.theme-fll .scene-motif::before {
+  content: "";
+  position: absolute;
+  left: -22px;
+  top: -22px;
+  width: 58px;
+  height: 24px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(255,255,255,0.5), transparent 70%);
+}
+
+.theme-sfo .scene-motif,
+.theme-ewr .scene-motif,
+.theme-lga .scene-motif {
+  width: 78px;
+  height: 34px;
+  border: 0;
+  border-top: 4px solid rgba(255,255,255,0.5);
+  border-radius: 0;
+  background: repeating-linear-gradient(90deg, rgba(255,255,255,0.44) 0 4px, transparent 4px 14px);
+}
+
+.theme-phx .scene-motif,
+.theme-las .scene-motif {
+  width: 18px;
+  height: 62px;
+  border: 0;
+  border-radius: 999px 999px 4px 4px;
+  background: rgba(255,255,255,0.5);
+  box-shadow: 22px 12px 0 -4px rgba(255,255,255,0.32), -20px 18px 0 -6px rgba(255,255,255,0.25);
+}
+
+.theme-iah .scene-motif,
+.theme-dtw .scene-motif {
+  border: 0;
+  background: conic-gradient(from 0deg, rgba(255,255,255,0.16), rgba(255,255,255,0.62), rgba(255,255,255,0.16));
+  box-shadow: inset 0 0 0 8px rgba(255,255,255,0.12);
+}
+
+.theme-atl .scene-motif,
+.theme-clt .scene-motif,
+.theme-bos .scene-motif,
+.theme-ord .scene-motif,
+.theme-dfw .scene-motif,
+.theme-jfk .scene-motif {
+  width: 90px;
+  height: 54px;
+  border: 0;
+  border-radius: 6px 6px 0 0;
+  background:
+    repeating-linear-gradient(90deg, rgba(255,255,255,0.5) 0 7px, transparent 7px 15px),
+    linear-gradient(180deg, rgba(255,255,255,0.2), rgba(255,255,255,0.08));
+  clip-path: polygon(0 100%, 0 56%, 12% 56%, 12% 32%, 26% 32%, 26% 46%, 42% 46%, 42% 18%, 58% 18%, 58% 38%, 76% 38%, 76% 60%, 100% 60%, 100% 100%);
+}
+
+@keyframes cardEntrance {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes ambientDrift {
+  from { transform: translate3d(0, 0, 0) scale(0.96); }
+  to { transform: translate3d(18px, -12px, 0) scale(1.08); }
+}
+
+@keyframes planeFloat {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(-12deg); }
+  50% { transform: translate3d(22px, -12px, 0) rotate(-4deg); }
+}
+
+@keyframes sunGlow {
+  from { transform: scale(0.96); opacity: 0.78; }
+  to { transform: scale(1.05); opacity: 1; }
+}
+
+@keyframes schematicPlane {
+  0% { transform: translateX(0) rotate(5deg); opacity: 0; }
+  15% { opacity: 1; }
+  82% { opacity: 1; }
+  100% { transform: translateX(620px) rotate(5deg); opacity: 0; }
+}
+
+@keyframes routePlane {
+  0% { transform: translateX(0) rotate(6deg); opacity: 0; }
+  12% { opacity: 1; }
+  86% { opacity: 1; }
+  100% { transform: translateX(620px) rotate(6deg); opacity: 0; }
+}
+
+@keyframes nodePop {
+  from { opacity: 0.65; transform: translateY(5px) scale(0.98); }
+  to { opacity: 1; transform: translateY(-2px) scale(1); }
+}
+
+@keyframes chipEntrance {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 620px) {
+  .hero-card {
+    grid-template-columns: 1fr;
+    min-height: unset;
+  }
+
+  .hero-scene {
+    min-height: 118px;
+  }
+
+  .hero-context {
+    margin-left: 0;
+    margin-top: 8px;
+  }
+
+  .scene-terminal::after {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 1ms !important;
+  }
+}

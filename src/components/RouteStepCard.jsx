@@ -8,8 +8,10 @@ const iconForMode = {
 };
 
 export default function RouteStepCard({ step, index, t }) {
+  const showWait = step.waitTime && step.waitTime.max > 0;
+
   return (
-    <article className="step-card">
+    <article className={`step-card step-mode-${step.mode || 'move'}`}>
       <div className="step-number">{index}</div>
       <div className="step-content">
         <div className="step-mode">
@@ -17,7 +19,11 @@ export default function RouteStepCard({ step, index, t }) {
           <strong>{step.modeLabel}</strong>
         </div>
         <p>{step.instruction}</p>
-        <small>{t.time}: {step.timeLabel}</small>
+        <div className="step-meta">
+          <small>{t.navigationTime}: {step.timeLabel}</small>
+          <small>{t.timeConfidence}: {step.timeConfidenceLabel}</small>
+          {showWait && <small>{t.expectedWait}: {step.waitTimeLabel}</small>}
+        </div>
         {step.note && <em>{step.note}</em>}
       </div>
     </article>
