@@ -46,11 +46,23 @@ export default function App() {
   useEffect(() => {
     function syncPageFromHash() {
       const hash = window.location.hash.replace('#', '');
-      setPage(hash === 'instructions' || hash === 'feedback' ? hash : 'start');
+      if (hash === 'instructions' || hash === 'feedback') {
+        setPage(hash);
+        setRoute(null);
+        return;
+      }
+      setPage('start');
+      if (hash !== 'route') {
+        setRoute(null);
+      }
     }
 
     window.addEventListener('hashchange', syncPageFromHash);
-    return () => window.removeEventListener('hashchange', syncPageFromHash);
+    window.addEventListener('popstate', syncPageFromHash);
+    return () => {
+      window.removeEventListener('hashchange', syncPageFromHash);
+      window.removeEventListener('popstate', syncPageFromHash);
+    };
   }, []);
 
   const localizedRoute = useMemo(() => {
@@ -71,7 +83,7 @@ export default function App() {
 
   function handleAirportChange(code) {
     if (page !== 'start') {
-      window.location.hash = '';
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
     }
     setAirportCode(code);
     setCurrentLocation('');
@@ -90,12 +102,17 @@ export default function App() {
     });
 
     setRoute({
+      id: `${airportCode}:${currentLocation}:${destination}:${result.path.join('>')}`,
       start: currentLocation,
       destination,
       fallbackMinutes: result.fallbackMinutes,
       path: result.path,
       edges: result.edges,
     });
+
+    if (window.location.hash !== '#route') {
+      window.location.hash = 'route';
+    }
   }
 
   function resetApp() {
@@ -103,6 +120,16 @@ export default function App() {
     setCurrentLocation('');
     setDestination('');
     setRoute(null);
+    setPage('start');
+    window.history.replaceState(null, '', window.location.pathname + window.location.search);
+  }
+
+  function handleChangeRoute() {
+    setCurrentLocation('');
+    setDestination('');
+    setRoute(null);
+    setPage('start');
+    window.history.replaceState(null, '', window.location.pathname + window.location.search);
   }
 
   return (
@@ -196,11 +223,12 @@ export default function App() {
 
       {airport?.status === 'mapped' && localizedRoute && (
         <>
-          <AirportMapSchematic airport={airport} path={localizedRoute.path} t={t} />
+          <AirportMapSchematic key={`preview-${localizedRoute.id || localizedRoute.path.join('-')}`} airport={airport} path={localizedRoute.path} t={t} />
           <RouteResult
+            key={`result-${localizedRoute.id || localizedRoute.path.join('-')}`}
             airport={airport}
             route={localizedRoute}
-            onChangeRoute={() => setRoute(null)}
+            onChangeRoute={handleChangeRoute}
             onReset={resetApp}
             t={t}
           />

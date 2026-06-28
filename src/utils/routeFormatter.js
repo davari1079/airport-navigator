@@ -81,9 +81,9 @@ function formatStep(group, nodeMap, t) {
     movementTime: timing.movement,
     waitTime: timing.wait,
     totalTime: timing.total,
-    timeLabel: formatMinuteRange(timing.total, t),
-    movementTimeLabel: formatMinuteRange(timing.movement, t),
-    waitTimeLabel: formatMinuteRange(timing.wait, t),
+    timeLabel: formatAverageMinutes(timing.total, t),
+    movementTimeLabel: formatAverageMinutes(timing.movement, t),
+    waitTimeLabel: formatAverageMinutes(timing.wait, t),
     timeConfidence: timing.confidence,
     timeConfidenceLabel: confidenceLabel(timing.confidence, t),
     instruction: buildInstruction({ first, last, from, to, systemName, intermediateStops, t }),
@@ -166,12 +166,12 @@ function summarizeTiming(steps, t) {
   return {
     navigationTime: {
       ...navigationTime,
-      label: formatMinuteRange(navigationTime, t),
+      label: formatAverageMinutes(navigationTime, t),
     },
     breakdown: {
-      walking: { ...breakdown.walking, label: formatMinuteRange(breakdown.walking, t) },
-      ride: { ...breakdown.ride, label: formatMinuteRange(breakdown.ride, t) },
-      wait: { ...breakdown.wait, label: formatMinuteRange(breakdown.wait, t) },
+      walking: { ...breakdown.walking, label: formatAverageMinutes(breakdown.walking, t) },
+      ride: { ...breakdown.ride, label: formatAverageMinutes(breakdown.ride, t) },
+      wait: { ...breakdown.wait, label: formatAverageMinutes(breakdown.wait, t) },
     },
     confidence,
   };
@@ -211,6 +211,13 @@ function formatMinuteRange(range, t) {
   return `${min}–${max} ${t.minutes}`;
 }
 
+function formatAverageMinutes(range, t) {
+  const min = Math.max(0, Number(range?.min || 0));
+  const max = Math.max(min, Number(range?.max || 0));
+  const average = Math.round((min + max) / 2);
+  return `${t.avgTimeLabel || 'Avg. time'} ${average} ${t.minutes}`;
+}
+
 function confidenceLabel(confidence, t) {
   const labels = {
     official: t.confidenceOfficial,
@@ -247,18 +254,53 @@ function buildNotes(group, t) {
   if (first.operatingHours) notes.push(`${t.hours}: ${translateTimingText(first.operatingHours, t)}.`);
   if (first.airsideOrLandside) notes.push(interpolate(t.connectionSidePhrase, { side: translateConnectionSide(first.airsideOrLandside, t) }) + '.');
 
-  if (group.some((edge) => edge.officialMinutes === null)) {
-    notes.push(t.appEstimateWhenOfficialMissing);
-  }
 
   group.forEach((edge) => {
     const translatedSourceNote = translateDataNote(edge.sourceNote, t);
     const translatedNote = translateDataNote(edge.note, t);
     [translatedSourceNote, translatedNote].forEach((note) => {
-      if (note && !notes.includes(note)) notes.push(note);
+      if (note && !isOfficialTimeStatement(note) && !notes.includes(note)) notes.push(note);
     });
   });
   return notes;
+}
+
+function isOfficialTimeStatement(note) {
+  const normalized = String(note || '').toLowerCase();
+  return (
+    normalized.includes('official time')
+    || normalized.includes('official travel time')
+    || normalized.includes('official per-segment')
+    || normalized.includes('official range')
+    || normalized.includes('official system average')
+    || normalized.includes('official t1')
+    || normalized.includes('tiempo oficial')
+    || normalized.includes('rango oficial')
+    || normalized.includes('temps officiel')
+    || normalized.includes('plage officielle')
+    || normalized.includes('官方时间')
+    || normalized.includes('官方范围')
+    || normalized.includes('공식 시간')
+    || normalized.includes('공식 범위')
+    || normalized.includes('公式時間')
+    || normalized.includes('公式範囲')
+    || normalized.includes('offizielle zeit')
+    || normalized.includes('offizieller bereich')
+    || normalized.includes('tempo oficial')
+    || normalized.includes('faixa oficial')
+    || normalized.includes('viagem oficial')
+    || normalized.includes('travel time not specified')
+    || normalized.includes('tempo de viagem não especificado')
+    || normalized.includes('所要時間')
+    || normalized.includes('tiempo de viaje no especificado')
+    || normalized.includes('temps de trajet non précisé')
+    || normalized.includes('旅行时间未指定')
+    || normalized.includes('行程时间')
+    || normalized.includes('reisezeit')
+    || normalized.includes('移動時間')
+    || normalized.includes('이동 시간이')
+    || normalized.includes('이동 시간')
+  );
 }
 
 function translateConnectionSide(side, t) {

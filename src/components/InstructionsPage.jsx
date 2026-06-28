@@ -3,11 +3,11 @@ export default function InstructionsPage() {
     <section className="resource-page-card" aria-labelledby="instructions-title">
       <div className="resource-page-topline">
         <a className="back-link" href="#">← Back to start page</a>
-        <span>V0.5 Beta</span>
+        <span>Beta 1.0</span>
       </div>
       <h2 id="instructions-title">Quick Tester Guide</h2>
       <p className="resource-lede">
-        Airport Navigator Beta is for tester use only. Always follow posted airport signage and official airport or airline guidance.
+        Airport Navigator Beta 1.0 is for tester use only. Always follow posted airport signage and official airport or airline guidance.
       </p>
 
       <div className="resource-section">

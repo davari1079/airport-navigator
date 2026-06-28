@@ -1,6 +1,6 @@
-# Airport Navigator MVP
+# Airport Navigator Beta 1.0
 
-Airport Navigator is a mobile-first React + Vite web app that helps travelers move through major U.S. airports with confidence. This build keeps the original MVP scope—no deployment and no payment—but expands the app from a small proof of concept into a Top 20 airport navigation dataset using the attached U.S. Airport Navigation Research Packet.
+Airport Navigator is a mobile-first React + Vite web app that helps travelers move through major U.S. airports with confidence. This Beta 1.0 build is deployed for tester use and expands the app into a Top 20 U.S. airport navigation dataset with route guidance, 8-language support, average navigation-time estimates, tester instructions, and email-based feedback.
 
 ## What changed in this build
 
@@ -9,13 +9,20 @@ Airport Navigator is a mobile-first React + Vite web app that helps travelers mo
 - Added richer airport metadata: city, layout summary, official map resource, official traversal resource, current advisory, security notes, source confidence, and traveler tips.
 - Added richer edge data: mode, system name, estimated routing weight, official minutes, frequency, operating hours, airside/landside status, traveler instructions, source notes, and merge behavior.
 - Improved route formatting so consecutive same-system movements merge into one customer-friendly step. For example, multiple Plane Train, Skylink, ATS, AirTrain, Sky Train, or Skyway hops display as one instruction with intermediate stops.
-- Preserved source-safe timing behavior while adding a source-safe estimated navigation-time range for each calculated route.
+- Preserved source-safe timing behavior while adding an average navigation-time estimate for each calculated route.
 - Added timing breakdowns for walking, train/shuttle/ride movement, and expected wait based on stored route data and published frequency where available.
-- Added time-confidence labels: Official, High, Estimated, or Limited.
+- Added time-confidence labels: Source-backed, High, Estimated, or Limited.
 - Added advisories for construction, closure, security, or manual-verification issues where the packet identified them.
 - Fixed retest connectivity gaps for SFO AirTrain Red, MSP Inter-terminal LRT Station, and LGA All-Terminals Shuttle so every mapped node can route to every other mapped node.
 - Removed the visible static-data badge from the timing breakdown card while keeping the source-safe static timing model.
 
+
+
+## Beta 1.0 route-change and mobile back-button fix
+
+This update fixes a route-preview refresh issue observed while changing ATL routes. Selecting **Change route** now clears the previous route selection, rebuilds the simple route preview from the new route only, and remounts the preview/result components using the active route key. Browser and mobile back-button behavior now returns from the route result to the route-selection state instead of leaving stale route visuals in place.
+
+Navigation timing now displays **Avg. time X minutes** using the midpoint of the low and high stored estimate. Navigation steps no longer show “official time” statements, while safety warnings such as airside/landside connection notes remain visible.
 
 ## Language support
 
@@ -35,7 +42,7 @@ The language layer localizes the main interface, dropdown labels, common airport
 Language QA notes:
 
 - The route is re-formatted from source edges whenever the language changes, preventing stale Spanish/French/etc. route text from appearing after switching languages.
-- Missing official timing remains localized as the language equivalent of “Official time not specified.”
+- Missing timing is handled without displaying “official time” statements in navigation steps.
 - Airport-specific long English source copy is replaced with localized safe guidance unless a verified localized phrase exists.
 - A production build was run after this update.
 
@@ -66,7 +73,7 @@ npm run build
 
 ## Navigation time feature
 
-This build adds a marketable source-safe navigation-time feature. The app now displays an estimated navigation-time range, a timing breakdown, and a confidence label for each calculated route.
+This build adds a marketable source-safe navigation-time feature. The app now displays an average navigation-time estimate, a timing breakdown, and a confidence label for each calculated route.
 
 The timing estimate is intentionally not dependent on live feeds. It uses:
 
@@ -81,10 +88,10 @@ Time-confidence labels:
 
 | Label | Meaning |
 | --- | --- |
-| Official | The route segment has official timing support in the data. |
-| High | Strong official-source support exists, but the displayed range still uses conservative app formatting or frequency-based wait. |
+| Source-backed | The route segment has source-backed timing support in the data. |
+| High | Strong source support exists, but the displayed average still uses conservative app formatting or frequency-based wait. |
 | Estimated | The route is source-backed, but one or more timing values are app-calculated static estimates. |
-| Limited | The route is usable, but official timing or current source detail still needs manual verification. |
+| Limited | The route is usable, but timing or current source detail still needs manual verification. |
 
 ## Visual design refresh for beta testers
 

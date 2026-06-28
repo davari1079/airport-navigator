@@ -21,7 +21,6 @@ export default function RouteStepCard({ step, index, t }) {
         <p>{step.instruction}</p>
         <div className="step-meta">
           <small>{t.navigationTime}: {step.timeLabel}</small>
-          <small>{t.timeConfidence}: {step.timeConfidenceLabel}</small>
           {showWait && <small>{t.expectedWait}: {step.waitTimeLabel}</small>}
         </div>
         {step.note && <em>{step.note}</em>}

@@ -1559,6 +1559,7 @@ select:focus {
 }
 
 .feedback-field input,
+.feedback-field select,
 .feedback-field textarea {
   width: 100%;
   padding: 13px 14px;
@@ -1571,6 +1572,7 @@ select:focus {
 }
 
 .feedback-field input:focus,
+.feedback-field select:focus,
 .feedback-field textarea:focus {
   border-color: var(--theme-warmth);
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--theme-warmth) 24%, transparent);
