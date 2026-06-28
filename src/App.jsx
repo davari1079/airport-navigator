@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import AppShell from './components/AppShell.jsx';
 import AirportSelector from './components/AirportSelector.jsx';
 import LanguageSelector from './components/LanguageSelector.jsx';
@@ -10,6 +10,10 @@ import { airportGraphs } from './data/airportGraphs.js';
 import { dijkstra } from './utils/dijkstra.js';
 import { formatRoute } from './utils/routeFormatter.js';
 import { displayAirportText, getTranslations } from './i18n/translations.js';
+import { getAirportVisual } from './data/airportVisuals.js';
+import BetaResourceTiles from './components/BetaResourceTiles.jsx';
+import InstructionsPage from './components/InstructionsPage.jsx';
+import FeedbackPage from './components/FeedbackPage.jsx';
 
 export default function App() {
   const [airportCode, setAirportCode] = useState('');
@@ -17,9 +21,37 @@ export default function App() {
   const [destination, setDestination] = useState('');
   const [route, setRoute] = useState(null);
   const [language, setLanguage] = useState('en');
+  const [page, setPage] = useState(() => {
+    const hash = window.location.hash.replace('#', '');
+    return hash === 'instructions' || hash === 'feedback' ? hash : 'start';
+  });
 
   const t = getTranslations(language);
   const airport = useMemo(() => airportGraphs[airportCode], [airportCode]);
+  const heroVisual = useMemo(() => getAirportVisual(airportCode), [airportCode]);
+  const pageVisual = heroVisual || {
+    src: '/airport-visuals/welcome.webp',
+    position: 'center center',
+    label: 'Travelers in an airport terminal',
+  };
+
+
+  useEffect(() => {
+    if (!pageVisual?.src) return;
+    const image = new Image();
+    image.decoding = 'async';
+    image.src = pageVisual.src;
+  }, [pageVisual.src]);
+
+  useEffect(() => {
+    function syncPageFromHash() {
+      const hash = window.location.hash.replace('#', '');
+      setPage(hash === 'instructions' || hash === 'feedback' ? hash : 'start');
+    }
+
+    window.addEventListener('hashchange', syncPageFromHash);
+    return () => window.removeEventListener('hashchange', syncPageFromHash);
+  }, []);
 
   const localizedRoute = useMemo(() => {
     if (!route || !airport?.nodeMap) return null;
@@ -38,6 +70,9 @@ export default function App() {
   }, [route, airport, language]);
 
   function handleAirportChange(code) {
+    if (page !== 'start') {
+      window.location.hash = '';
+    }
     setAirportCode(code);
     setCurrentLocation('');
     setDestination('');
@@ -72,29 +107,49 @@ export default function App() {
 
   return (
     <AppShell t={t} airport={airport}>
-      <section className="hero-card">
-        <div className="hero-content">
+      <section
+        className={`hero-card hero-card-photo ${heroVisual ? 'hero-card-airport' : 'hero-card-welcome'}`}
+        style={{
+          '--hero-image': `url(${pageVisual.src})`,
+          '--hero-position': pageVisual.position,
+        }}
+      >
+        <div className="hero-card-media" aria-hidden="true">
+          <span className="hero-card-scrim" />
+          <span className="hero-card-highlight" />
+          <span className="scene-plane">✈</span>
+        </div>
+        <div className="hero-content hero-content-overlay">
           <span className="eyebrow">{t.travelGuideMVP}</span>
-          {airport && (
+          {airport ? (
             <span className="hero-context" aria-label={`${airport.city} ${airport.code}`}>
-              {airport.city} · {airport.code}
+              {airport.code} · {airport.city}
             </span>
+          ) : (
+            <span className="hero-context hero-context-soft">{t.airportLabel}</span>
           )}
           <h1>{t.appTitle}</h1>
           <p>{t.heroSubtitle}</p>
         </div>
-        <div className="hero-scene" aria-hidden="true">
-          <span className="scene-sun" />
-          <span className="scene-terminal" />
-          <span className="scene-runway" />
-          <span className="scene-plane">✈</span>
-          <span className="scene-motif" />
-        </div>
+        {airport && (
+          <div className="hero-card-note" aria-hidden="true">
+            <strong>{airport.name}</strong>
+            <span>{airport.city}</span>
+          </div>
+        )}
       </section>
 
       <LanguageSelector value={language} onChange={setLanguage} t={t} />
 
-      <AirportSelector value={airportCode} onChange={handleAirportChange} t={t} />
+      {page === 'start' && (
+        <AirportSelector value={airportCode} onChange={handleAirportChange} t={t} />
+      )}
+
+      {!airportCode && page === 'start' && <BetaResourceTiles />}
+
+      {page === 'instructions' && !airportCode && <InstructionsPage />}
+
+      {page === 'feedback' && !airportCode && <FeedbackPage />}
 
       {airportCode && airport?.status !== 'mapped' && (
         <section className="guide-card coming-soon-card">
