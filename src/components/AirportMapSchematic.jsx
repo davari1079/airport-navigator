@@ -2,10 +2,14 @@ import { useMemo } from 'react';
 import { displayNodeLabel } from '../i18n/translations.js';
 
 export default function AirportMapSchematic({ airport, path, t }) {
-  if (!airport.schematic?.length) return null;
+  const routePath = useMemo(() => {
+    const cleanPath = Array.isArray(path) ? path.filter(Boolean) : [];
+    return cleanPath.length ? cleanPath : [];
+  }, [path]);
 
-  const activePath = useMemo(() => new Set(path || []), [path]);
-  const routeKey = (path || []).join('>');
+  if (!routePath.length) return null;
+
+  const routeKey = routePath.join('>');
 
   return (
     <section className="guide-card schematic-card route-preview-card" data-route-key={routeKey}>
@@ -18,14 +22,15 @@ export default function AirportMapSchematic({ airport, path, t }) {
         <span className="schematic-moving-plane">✈</span>
       </div>
       <div className="schematic-track" aria-label={t.simpleRoutePreview}>
-        {airport.schematic.map((nodeId, index) => {
-          const active = activePath.has(nodeId);
-          return (
-            <div key={`${routeKey}-${nodeId}`} className={`schematic-node ${active ? 'active' : ''}`} style={{ '--node-index': index }}>
-              {displayNodeLabel(nodeId, airport.nodeMap, t, true)}
-            </div>
-          );
-        })}
+        {routePath.map((nodeId, index) => (
+          <div
+            key={`${routeKey}-${nodeId}-${index}`}
+            className="schematic-node active"
+            style={{ '--node-index': index }}
+          >
+            {displayNodeLabel(nodeId, airport.nodeMap, t, true)}
+          </div>
+        ))}
       </div>
     </section>
   );

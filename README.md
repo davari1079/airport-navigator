@@ -170,3 +170,14 @@ Examples:
 - Add browser-assisted verification for JFK, EWR, LGA, MCO, and BOS.
 - Add source audit details into the UI or an admin data layer.
 - Add official API/map integration where airports expose stable public data.
+
+
+## Beta 1.0 route preview consistency update
+
+This update makes the Simple Route Preview use the same calculated route path as the timing breakdown and route-flow graphic. The fix applies globally to every supported airport because the preview now renders from the active route path instead of the airport default schematic list.
+
+Additional notes:
+- Browser and mobile back-button behavior remains hash/history based.
+- Step notes continue to remove official-time statements while preserving safety notes such as airside/landside connection reminders.
+- Time estimates continue to display as average time using the midpoint of the stored low/high estimate.
+- `package-lock.json` is intentionally omitted so Vercel can install from the public npm registry using the configured install command.
