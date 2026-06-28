@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { airportGraphs, topAirports } from '../data/airportGraphs.js';
 
 const selectOptions = {
@@ -13,20 +13,16 @@ function Field({ label, name, type = 'text', placeholder = '', children }) {
   return (
     <label className="feedback-field">
       <span>{label}</span>
-      {children || <input name={name} type={type} placeholder={placeholder} autoComplete="off" />}
+      {children || <input name={name} type={type} placeholder={placeholder} />}
     </label>
   );
 }
 
 function SelectField({ label, name, options, value, onChange, disabled = false, placeholder = 'Select' }) {
-  const controlledProps = value !== undefined
-    ? { value, onChange }
-    : { defaultValue: '' };
-
   return (
     <Field label={label} name={name}>
-      <select name={name} disabled={disabled} autoComplete="off" {...controlledProps}>
-        <option value="">{placeholder}</option>
+      <select name={name} value={value} onChange={onChange} disabled={disabled}>
+        <option value="" disabled>{placeholder}</option>
         {options.map((option) => {
           const valueText = typeof option === 'string' ? option : option.value;
           const labelText = typeof option === 'string' ? option : option.label;
@@ -36,8 +32,6 @@ function SelectField({ label, name, options, value, onChange, disabled = false, 
     </Field>
   );
 }
-
-
 
 function TextAreaField({ label, name, placeholder = '' }) {
   return (
@@ -49,17 +43,9 @@ function TextAreaField({ label, name, placeholder = '' }) {
 }
 
 export default function FeedbackPage() {
-  const formRef = useRef(null);
   const [selectedAirportCode, setSelectedAirportCode] = useState('');
   const [startingPoint, setStartingPoint] = useState('');
   const [destination, setDestination] = useState('');
-
-  useEffect(() => {
-    setSelectedAirportCode('');
-    setStartingPoint('');
-    setDestination('');
-    formRef.current?.reset();
-  }, []);
 
   const airportOptions = useMemo(() => topAirports.map((airport) => ({
     value: airport.code,
@@ -88,7 +74,7 @@ export default function FeedbackPage() {
       ? `${selectedAirport.code} — ${selectedAirport.name}`
       : data.airport || 'Not provided';
     const lines = [
-      'Airport Navigator Beta 1.0 Feedback',
+      'Airport Navigator V0.5 Beta Feedback',
       '',
       `Tester name: ${data.testerName || 'Not provided'}`,
       `Email: ${data.email || 'Not provided'}`,
@@ -120,7 +106,7 @@ export default function FeedbackPage() {
       'Safety note: Airport layouts, gates, security access, and transportation details can change. This beta is for feedback and testing only.',
     ];
 
-    const subject = encodeURIComponent('Airport Navigator Beta 1.0 Feedback');
+    const subject = encodeURIComponent('Airport Navigator V0.5 Beta Feedback');
     const body = encodeURIComponent(lines.join('\n'));
     window.location.href = `mailto:info@davarisolutions.com?subject=${subject}&body=${body}`;
   }
@@ -129,19 +115,19 @@ export default function FeedbackPage() {
     <section className="resource-page-card" aria-labelledby="feedback-title">
       <div className="resource-page-topline">
         <a className="back-link" href="#">← Back to start page</a>
-        <span>Beta 1.0</span>
+        <span>V0.5 Beta</span>
       </div>
       <h2 id="feedback-title">Feedback Form</h2>
       <p className="resource-lede">Keep it quick: test one route, then complete this form. Use one form per route tested.</p>
 
-      <form ref={formRef} className="feedback-form" onSubmit={handleSubmit} autoComplete="off">
+      <form className="feedback-form" onSubmit={handleSubmit}>
         <div className="feedback-grid">
           <Field label="Tester name (optional)" name="testerName" />
           <Field label="Email (optional)" name="email" type="email" />
           <Field label="Date" name="date" type="date" />
-          <SelectField label="Device" name="device" options={selectOptions.device} placeholder="Select device" />
-          <SelectField label="Browser" name="browser" options={selectOptions.browser} placeholder="Select browser" />
-          <SelectField label="Language tested" name="languageTested" options={selectOptions.language} placeholder="Select language" />
+          <SelectField label="Device" name="device" options={selectOptions.device} />
+          <SelectField label="Browser" name="browser" options={selectOptions.browser} />
+          <SelectField label="Language tested" name="languageTested" options={selectOptions.language} />
           <SelectField
             label="Airport"
             name="airport"
@@ -172,14 +158,14 @@ export default function FeedbackPage() {
 
         <h3 className="feedback-subhead">Quick ratings</h3>
         <div className="feedback-grid">
-          <SelectField label="Route made sense?" name="routeMadeSense" options={selectOptions.yesNo} placeholder="Select" />
-          <SelectField label="Time helpful?" name="timeHelpful" options={selectOptions.yesNo} placeholder="Select" />
-          <SelectField label="Mobile/UI ease" name="mobileUiEase" options={selectOptions.rating} placeholder="Select rating" />
-          <SelectField label="Confidence" name="travelerConfidence" options={selectOptions.rating} placeholder="Select rating" />
-          <SelectField label="Mixed-language text?" name="mixedLanguage" options={selectOptions.yesNo} placeholder="Select" />
-          <SelectField label="Any route issue?" name="routeIssue" options={selectOptions.yesNo} placeholder="Select" />
-          <SelectField label="Would recommend?" name="wouldRecommend" options={selectOptions.yesNo} placeholder="Select" />
-          <SelectField label="Would pay/use?" name="wouldPayOrUse" options={selectOptions.yesNo} placeholder="Select" />
+          <SelectField label="Route made sense?" name="routeMadeSense" options={selectOptions.yesNo} />
+          <SelectField label="Time helpful?" name="timeHelpful" options={selectOptions.yesNo} />
+          <SelectField label="Mobile/UI ease" name="mobileUiEase" options={selectOptions.rating} />
+          <SelectField label="Confidence" name="travelerConfidence" options={selectOptions.rating} />
+          <SelectField label="Mixed-language text?" name="mixedLanguage" options={selectOptions.yesNo} />
+          <SelectField label="Any route issue?" name="routeIssue" options={selectOptions.yesNo} />
+          <SelectField label="Would recommend?" name="wouldRecommend" options={selectOptions.yesNo} />
+          <SelectField label="Would pay/use?" name="wouldPayOrUse" options={selectOptions.yesNo} />
         </div>
 
         <h3 className="feedback-subhead">Short comments</h3>
