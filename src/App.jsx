@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import AppShell from './components/AppShell.jsx';
 import AirportSelector from './components/AirportSelector.jsx';
 import LanguageSelector from './components/LanguageSelector.jsx';
@@ -14,6 +14,7 @@ import { getAirportVisual } from './data/airportVisuals.js';
 import BetaResourceTiles from './components/BetaResourceTiles.jsx';
 import InstructionsPage from './components/InstructionsPage.jsx';
 import FeedbackPage from './components/FeedbackPage.jsx';
+import './testerIntro.css';
 
 export default function App() {
   const [airportCode, setAirportCode] = useState('');
@@ -21,6 +22,8 @@ export default function App() {
   const [destination, setDestination] = useState('');
   const [route, setRoute] = useState(null);
   const [language, setLanguage] = useState('en');
+  const [showTesterIntro, setShowTesterIntro] = useState(true);
+  const introDialogRef = useRef(null);
   const [page, setPage] = useState(() => {
     const hash = window.location.hash.replace('#', '');
     return hash === 'instructions' || hash === 'feedback' ? hash : 'start';
@@ -35,6 +38,21 @@ export default function App() {
     label: 'Travelers in an airport terminal',
   };
 
+  useEffect(() => {
+    if (!showTesterIntro) return;
+    const dialog = introDialogRef.current;
+    if (!dialog) return;
+
+    if (typeof dialog.showModal === 'function' && !dialog.open) {
+      dialog.showModal();
+    }
+
+    return () => {
+      if (dialog.open) {
+        dialog.close();
+      }
+    };
+  }, [showTesterIntro]);
 
   useEffect(() => {
     if (!pageVisual?.src) return;
@@ -132,8 +150,45 @@ export default function App() {
     window.history.replaceState(null, '', window.location.pathname + window.location.search);
   }
 
+  function handleContinueFromIntro() {
+    const dialog = introDialogRef.current;
+    if (dialog?.open) {
+      dialog.close();
+    }
+    setShowTesterIntro(false);
+  }
+
   return (
     <AppShell t={t} airport={airport}>
+      {showTesterIntro && (
+        <dialog
+          className="tester-intro-modal"
+          ref={introDialogRef}
+          aria-labelledby="tester-intro-title"
+          aria-describedby="tester-intro-description"
+        >
+          <span className="tester-intro-kicker">Airport Navigator Beta 1.0</span>
+          <h2 id="tester-intro-title">Help test Airport Navigator</h2>
+          <div id="tester-intro-description" className="tester-intro-copy">
+            <p><strong>What to do:</strong></p>
+            <ol>
+              <li>Open the app on your phone if possible.</li>
+              <li>Choose a language.</li>
+              <li>Select an airport.</li>
+              <li>Pick a starting point and destination.</li>
+              <li>Review the route, timing, and instructions.</li>
+              <li>Return to the start page and use the Feedback tile to submit your feedback.</li>
+            </ol>
+            <p>Please focus on whether the app is easy to use, the route makes sense, the estimated time is helpful, the language stays consistent, and anything that looks confusing or incorrect.</p>
+            <p>Thank you for helping test Airport Navigator Beta 1.0.</p>
+            <p className="tester-intro-signoff">David<br />DavAri Solutions</p>
+          </div>
+          <button className="primary-button tester-intro-button" type="button" onClick={handleContinueFromIntro}>
+            Continue
+          </button>
+        </dialog>
+      )}
+
       <section
         className={`hero-card hero-card-photo ${heroVisual ? 'hero-card-airport' : 'hero-card-welcome'}`}
         style={{
