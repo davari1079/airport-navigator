@@ -1,0 +1,4 @@
+/* Beta tester intro styles */
+.tester-intro-overlay { margin: 0 auto 18px; padding: 18px; }
+.tester-intro-modal { width: min(94vw, 560px); margin: 0 auto; padding: 24px; border-radius: 26px; background: white; }
+.tester-intro-button { width: 100%; }
