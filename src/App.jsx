@@ -172,7 +172,7 @@ export default function App() {
           <div id="tester-intro-description" className="tester-intro-copy">
             <p><strong>What to do:</strong></p>
             <ol>
-              <li>Open the app on your phone if possible.</li>
+              <li>Use your phone if possible so you can test the mobile experience.</li>
               <li>Choose a language.</li>
               <li>Select an airport.</li>
               <li>Pick a starting point and destination.</li>
@@ -181,7 +181,6 @@ export default function App() {
             </ol>
             <p>Please focus on whether the app is easy to use, the route makes sense, the estimated time is helpful, the language stays consistent, and anything that looks confusing or incorrect.</p>
             <p>Thank you for helping test Airport Navigator Beta 1.0.</p>
-            <p className="tester-intro-signoff">David<br />DavAri Solutions</p>
           </div>
           <button className="primary-button tester-intro-button" type="button" onClick={handleContinueFromIntro}>
             Continue
