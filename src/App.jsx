@@ -6,7 +6,7 @@ import CurrentLocationSelector from './components/CurrentLocationSelector.jsx';
 import DestinationSelector from './components/DestinationSelector.jsx';
 import RouteResult from './components/RouteResult.jsx';
 import AirportMapSchematic from './components/AirportMapSchematic.jsx';
-import { airportGraphs } from './data/airportGraphs.js';
+import { airportGraphs } from './data/extendedAirportGraphs.js';
 import { dijkstra } from './utils/dijkstra.js';
 import { formatRoute } from './utils/routeFormatter.js';
 import { displayAirportText, getTranslations } from './i18n/translations.js';
