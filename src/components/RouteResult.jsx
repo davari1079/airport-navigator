@@ -6,7 +6,6 @@ export default function RouteResult({ airport, route, onChangeRoute, onReset, t 
   const destination = displayNodeLabel(route.destination, airport.nodeMap, t);
   const timeSummary = route.navigationTime?.label
     || (route.totalMinutes === null ? t.timeUnknownSummary : `${route.totalMinutes} ${t.minutes}`);
-  const breakdown = route.timingBreakdown;
 
   return (
     <section className="route-result route-result-dynamic">
@@ -36,40 +35,6 @@ export default function RouteResult({ airport, route, onChangeRoute, onReset, t 
               {t.timeConfidence}: {route.timeConfidenceLabel}
             </span>
           )}
-        </div>
-      </div>
-
-      {breakdown && (
-        <div className="timing-breakdown" aria-label={t.timingBreakdown}>
-          <div className="timing-heading">
-            <h3>{t.timingBreakdown}</h3>
-          </div>
-          <div className="timing-grid">
-            <div className="timing-item">
-              <span>{t.walkingTime}</span>
-              <strong>{breakdown.walking.label}</strong>
-            </div>
-            <div className="timing-item">
-              <span>{t.rideTime}</span>
-              <strong>{breakdown.ride.label}</strong>
-            </div>
-            <div className="timing-item">
-              <span>{t.expectedWait}</span>
-              <strong>{breakdown.wait.label}</strong>
-            </div>
-          </div>
-          <p>{t.navigationTimeDisclaimer}</p>
-        </div>
-      )}
-
-      <div className="route-flow" aria-label={t.recommendedPath}>
-        <div className="route-flow-line" aria-hidden="true">
-          <span className="route-flow-plane">✈</span>
-        </div>
-        <div className="path-pill">
-          {route.path.map((nodeId, index) => (
-            <span key={nodeId} style={{ '--pill-index': index }}>{displayNodeLabel(nodeId, airport.nodeMap, t, true)}</span>
-          ))}
         </div>
       </div>
 
