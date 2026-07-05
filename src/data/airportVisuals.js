@@ -19,6 +19,8 @@ export const airportVisuals = {
   MSP: { src: '/airport-visuals/msp.webp', position: '66% center', label: 'Minneapolis–Saint Paul skyline hero art' },
   LGA: { src: '/airport-visuals/lga.webp', position: '72% center', label: 'New York skyline hero art' },
   DTW: { src: '/airport-visuals/dtw.webp', position: '74% center', label: 'Detroit skyline hero art' },
+  MEM: { src: '/airport-visuals/mem.webp', position: '70% center', label: 'Memphis skyline hero art' },
+  BNA: { src: '/airport-visuals/bna.webp', position: '70% center', label: 'Nashville skyline hero art' },
 };
 
 export function getAirportVisual(code) {
