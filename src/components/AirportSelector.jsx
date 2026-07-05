@@ -1,4 +1,4 @@
-import { topAirports } from '../data/airportGraphs.js';
+import { topAirports } from '../data/extendedAirportGraphs.js';
 
 export default function AirportSelector({ value, onChange, t }) {
   return (
