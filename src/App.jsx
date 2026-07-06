@@ -15,7 +15,6 @@ import BetaResourceTiles from './components/BetaResourceTiles.jsx';
 import InstructionsPage from './components/InstructionsPage.jsx';
 import FeedbackPage from './components/FeedbackPage.jsx';
 import './testerIntro.css';
-import './components/FeedbackPage.css';
 
 export default function App() {
   const [airportCode, setAirportCode] = useState('');
@@ -43,9 +42,15 @@ export default function App() {
     if (!showTesterIntro) return;
     const dialog = introDialogRef.current;
     if (!dialog) return;
-    if (typeof dialog.showModal === 'function' && !dialog.open) dialog.showModal();
+
+    if (typeof dialog.showModal === 'function' && !dialog.open) {
+      dialog.showModal();
+    }
+
     return () => {
-      if (dialog.open) dialog.close();
+      if (dialog.open) {
+        dialog.close();
+      }
     };
   }, [showTesterIntro]);
 
@@ -65,8 +70,11 @@ export default function App() {
         return;
       }
       setPage('start');
-      if (hash !== 'route') setRoute(null);
+      if (hash !== 'route') {
+        setRoute(null);
+      }
     }
+
     window.addEventListener('hashchange', syncPageFromHash);
     window.addEventListener('popstate', syncPageFromHash);
     return () => {
@@ -92,7 +100,9 @@ export default function App() {
   }, [route, airport, language]);
 
   function handleAirportChange(code) {
-    if (page !== 'start') window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    if (page !== 'start') {
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
     setAirportCode(code);
     setCurrentLocation('');
     setDestination('');
@@ -101,12 +111,14 @@ export default function App() {
 
   function handleFindRoute() {
     if (!airport || airport.status !== 'mapped' || !currentLocation || !destination) return;
+
     const result = dijkstra({
       nodes: airport.nodes,
       edges: airport.edges,
       startId: currentLocation,
       destinationId: destination,
     });
+
     setRoute({
       id: `${airportCode}:${currentLocation}:${destination}:${result.path.join('>')}`,
       start: currentLocation,
@@ -115,7 +127,10 @@ export default function App() {
       path: result.path,
       edges: result.edges,
     });
-    if (window.location.hash !== '#route') window.location.hash = 'route';
+
+    if (window.location.hash !== '#route') {
+      window.location.hash = 'route';
+    }
   }
 
   function resetApp() {
@@ -137,15 +152,21 @@ export default function App() {
 
   function handleContinueFromIntro() {
     const dialog = introDialogRef.current;
-    if (dialog?.open) dialog.close();
+    if (dialog?.open) {
+      dialog.close();
+    }
     setShowTesterIntro(false);
   }
 
   return (
     <AppShell t={t} airport={airport}>
       {showTesterIntro && (
-        <dialog className="tester-intro-modal" ref={introDialogRef} aria-labelledby="tester-intro-title" aria-describedby="tester-intro-description">
-          <span className="tester-intro-plane" aria-hidden="true">✈</span>
+        <dialog
+          className="tester-intro-modal"
+          ref={introDialogRef}
+          aria-labelledby="tester-intro-title"
+          aria-describedby="tester-intro-description"
+        >
           <span className="tester-intro-kicker">Airport Navigator Beta 1.0</span>
           <h2 id="tester-intro-title">Help test Airport Navigator</h2>
           <div id="tester-intro-description" className="tester-intro-copy">
@@ -161,13 +182,18 @@ export default function App() {
             <p>Please focus on whether the app is easy to use, the route makes sense, the estimated time is helpful, the language stays consistent, and anything that looks confusing or incorrect.</p>
             <p>Thank you for helping test Airport Navigator Beta 1.0.</p>
           </div>
-          <button className="primary-button tester-intro-button" type="button" onClick={handleContinueFromIntro}>Continue</button>
+          <button className="primary-button tester-intro-button" type="button" onClick={handleContinueFromIntro}>
+            Continue
+          </button>
         </dialog>
       )}
 
       <section
         className={`hero-card hero-card-photo ${heroVisual ? 'hero-card-airport' : 'hero-card-welcome'}`}
-        style={{ '--hero-image': `url(${pageVisual.src})`, '--hero-position': pageVisual.position }}
+        style={{
+          '--hero-image': `url(${pageVisual.src})`,
+          '--hero-position': pageVisual.position,
+        }}
       >
         <div className="hero-card-media" aria-hidden="true">
           <span className="hero-card-scrim" />
@@ -177,7 +203,9 @@ export default function App() {
         <div className="hero-content hero-content-overlay">
           <span className="eyebrow">{t.travelGuideMVP}</span>
           {airport ? (
-            <span className="hero-context" aria-label={`${airport.city} ${airport.code}`}>{airport.code} · {airport.city}</span>
+            <span className="hero-context" aria-label={`${airport.city} ${airport.code}`}>
+              {airport.code} · {airport.city}
+            </span>
           ) : (
             <span className="hero-context hero-context-soft">{t.airportLabel}</span>
           )}
@@ -193,9 +221,15 @@ export default function App() {
       </section>
 
       <LanguageSelector value={language} onChange={setLanguage} t={t} />
-      {page === 'start' && <AirportSelector value={airportCode} onChange={handleAirportChange} t={t} />}
+
+      {page === 'start' && (
+        <AirportSelector value={airportCode} onChange={handleAirportChange} t={t} />
+      )}
+
       {!airportCode && page === 'start' && <BetaResourceTiles />}
+
       {page === 'instructions' && !airportCode && <InstructionsPage />}
+
       {page === 'feedback' && !airportCode && <FeedbackPage />}
 
       {airportCode && airport?.status !== 'mapped' && (
@@ -215,16 +249,43 @@ export default function App() {
               <p>{displayAirportText(airport, 'summary', t)}</p>
             </div>
           </div>
-          <CurrentLocationSelector airport={airport} value={currentLocation} onChange={setCurrentLocation} t={t} />
-          <DestinationSelector airport={airport} value={destination} currentLocation={currentLocation} onChange={setDestination} t={t} />
-          <button className="primary-button" disabled={!currentLocation || !destination || currentLocation === destination} onClick={handleFindRoute}>{t.calculateRoute}</button>
+
+          <CurrentLocationSelector
+            airport={airport}
+            value={currentLocation}
+            onChange={setCurrentLocation}
+            t={t}
+          />
+
+          <DestinationSelector
+            airport={airport}
+            value={destination}
+            currentLocation={currentLocation}
+            onChange={setDestination}
+            t={t}
+          />
+
+          <button
+            className="primary-button"
+            disabled={!currentLocation || !destination || currentLocation === destination}
+            onClick={handleFindRoute}
+          >
+            {t.calculateRoute}
+          </button>
         </section>
       )}
 
       {airport?.status === 'mapped' && localizedRoute && (
         <>
           <AirportMapSchematic key={`preview-${localizedRoute.id || localizedRoute.path.join('-')}`} airport={airport} path={localizedRoute.path} t={t} />
-          <RouteResult key={`result-${localizedRoute.id || localizedRoute.path.join('-')}`} airport={airport} route={localizedRoute} onChangeRoute={handleChangeRoute} onReset={resetApp} t={t} />
+          <RouteResult
+            key={`result-${localizedRoute.id || localizedRoute.path.join('-')}`}
+            airport={airport}
+            route={localizedRoute}
+            onChangeRoute={handleChangeRoute}
+            onReset={resetApp}
+            t={t}
+          />
         </>
       )}
     </AppShell>

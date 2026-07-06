@@ -1,7 +1,7 @@
-export default function DisclaimerBanner() {
+export default function DisclaimerBanner({ t }) {
   return (
-    <section className="disclaimer-card">
-      Airport Navigator Beta 1.0 is a planning aid. Confirm live airport signs, airline app details, TSA/security access, closures, gate changes, and official airport guidance before moving.
-    </section>
+    <footer className="disclaimer-banner">
+      <strong>{t.travelReminder}:</strong> {t.disclaimerText}
+    </footer>
   );
 }
