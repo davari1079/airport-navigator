@@ -16,7 +16,7 @@ export const airportVisuals = {
   IAH: { src: '/airport-visuals/iah.webp', position: '70% center', label: 'Houston skyline hero art' },
   BOS: { src: '/airport-visuals/bos.webp', position: '74% center', label: 'Boston skyline hero art' },
   FLL: { src: '/airport-visuals/fll.webp', position: '66% center', label: 'Fort Lauderdale hero art' },
-  MSP: { src: '/airport-visuals/msp.webp', position: '66% center', label: 'Minneapolis–Saint Paul skyline hero art' },
+  MSP: { src: '/airport-visuals/msp.webp', position: '66% center', label: 'Minneapolis-Saint Paul skyline hero art' },
   LGA: { src: '/airport-visuals/lga.webp', position: '72% center', label: 'New York skyline hero art' },
   DTW: { src: '/airport-visuals/dtw.webp', position: '74% center', label: 'Detroit skyline hero art' },
   MEM: { src: '/airport-visuals/mem.webp', position: '70% center', label: 'Memphis skyline hero art' },

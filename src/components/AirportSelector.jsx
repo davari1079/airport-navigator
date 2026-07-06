@@ -7,9 +7,7 @@ export default function AirportSelector({ value, onChange, t }) {
       <select id="airport" value={value} onChange={(event) => onChange(event.target.value)}>
         <option value="">{t.selectAirport}</option>
         {topAirports.map((airport) => (
-          <option key={airport.code} value={airport.code}>
-            {airport.code} — {airport.name}
-          </option>
+          <option key={airport.code} value={airport.code}>{airport.code} — {airport.name}</option>
         ))}
       </select>
     </section>

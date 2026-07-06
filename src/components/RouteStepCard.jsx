@@ -1,29 +1,23 @@
-const iconForMode = {
-  walk: '🚶',
-  train: '🚆',
-  tram: '🚊',
-  shuttle: '🚌',
-  bus: '🚌',
-  transfer: '➡️',
-};
+import { displayNodeLabel } from '../i18n/translations.js';
 
 export default function RouteStepCard({ step, index, t }) {
-  const showWait = step.waitTime && step.waitTime.max > 0;
+  const connectionType = step.airsideOrLandside === 'airside'
+    ? t.airsideConnection
+    : step.airsideOrLandside === 'landside'
+      ? t.landsideConnection
+      : null;
 
   return (
-    <article className={`step-card step-mode-${step.mode || 'move'}`}>
+    <article className="route-step-card">
       <div className="step-number">{index}</div>
-      <div className="step-content">
-        <div className="step-mode">
-          <span aria-hidden="true">{iconForMode[step.mode] || '➡️'}</span>
-          <strong>{step.modeLabel}</strong>
-        </div>
+      <div>
         <p>{step.instruction}</p>
         <div className="step-meta">
-          <small>{t.navigationTime}: {step.timeLabel}</small>
-          {showWait && <small>{t.expectedWait}: {step.waitTimeLabel}</small>}
+          <span>{step.timeLabel}</span>
+          {connectionType && <span>{connectionType}</span>}
+          {step.frequency && <span>{t.frequency}: {step.frequency}</span>}
         </div>
-        {step.note && <em>{step.note}</em>}
+        {step.note && <small>{step.note}</small>}
       </div>
     </article>
   );

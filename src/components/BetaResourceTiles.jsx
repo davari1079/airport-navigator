@@ -1,23 +1,16 @@
 export default function BetaResourceTiles() {
   return (
-    <section className="beta-resource-card" aria-labelledby="beta-resources-title">
-      <div className="beta-resource-heading">
-        <span className="beta-kicker">Beta tester tools</span>
-        <h2 id="beta-resources-title">Help us improve Airport Navigator</h2>
-        <p>Test a route, then use these quick pages to read the guide or send feedback to DavAri.</p>
-      </div>
-      <div className="beta-resource-grid">
-        <a className="beta-resource-tile instructions-tile" href="#instructions">
-          <span className="tile-icon" aria-hidden="true">🧭</span>
-          <strong>Instructions</strong>
-          <small>Quick tester guide, focus questions, and beta limits.</small>
-        </a>
-        <a className="beta-resource-tile feedback-tile" href="#feedback">
-          <span className="tile-icon" aria-hidden="true">✉️</span>
-          <strong>Give feedback</strong>
-          <small>Fill in a short form and send it by email to DavAri.</small>
-        </a>
-      </div>
+    <section className="beta-resource-grid" aria-label="Beta tester tools">
+      <a className="beta-resource-tile" href="#instructions">
+        <span>Beta Tester Tools</span>
+        <strong>Instructions</strong>
+        <p>Read the quick test guide before trying routes.</p>
+      </a>
+      <a className="beta-resource-tile" href="#feedback">
+        <span>Beta Tester Tools</span>
+        <strong>Feedback</strong>
+        <p>Submit your route, timing, language, and usability feedback.</p>
+      </a>
     </section>
   );
 }
