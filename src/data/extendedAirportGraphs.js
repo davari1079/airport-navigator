@@ -79,6 +79,43 @@ const additionalAirports = {
     securityNotes: 'Concourse movements are modeled as post-security; baggage claim, rental cars, rideshare, and parking are landside.',
   }),
 
+
+
+  AVL: mapAirport({
+    code: 'AVL',
+    name: 'Asheville Regional Airport',
+    city: 'Asheville',
+    summary: 'Asheville airport layout with terminal, security, gate area, baggage claim, ground transportation, rideshare, rental cars, and parking connections.',
+    layoutSummary: 'Compact terminal layout with a central terminal, post-security gate area, and landside baggage and ground transportation access.',
+    officialMapResource: 'https://flyavl.com/',
+    officialTraversalResource: 'https://flyavl.com/',
+    currentAdvisory: 'Confirm current checkpoint access, gate assignment, and pickup location before moving.',
+    sourceConfidence: 'basic_safe_guidance',
+    nodes: [
+      n('terminal', 'Terminal', 'Terminal'),
+      n('security', 'Security', 'Security'),
+      n('gates', 'Gates / Boarding Area', 'Gates'),
+      n('baggage-claim', 'Baggage Claim', 'Bags'),
+      n('ground-transportation', 'Ground Transportation', 'Ground'),
+      n('rental-cars', 'Rental Cars', 'Rental'),
+      n('rideshare-pickup', 'Rideshare Pickup', 'Ride'),
+      n('parking', 'Parking', 'Parking'),
+    ],
+    edges: [
+      edge('terminal', 'security', 'walk', 3, 'Proceed from the terminal toward security screening.', officialUnknown),
+      edge('security', 'gates', 'walk', 4, 'After security, continue to the gates and boarding area.', officialUnknown),
+      edge('terminal', 'baggage-claim', 'walk', 3, 'Follow baggage claim signs from the terminal.', officialUnknown),
+      edge('baggage-claim', 'ground-transportation', 'walk', 2, 'Follow ground transportation signs from baggage claim.', officialUnknown),
+      edge('ground-transportation', 'rental-cars', 'walk', 4, 'Follow rental car signs from ground transportation.', officialUnknown),
+      edge('ground-transportation', 'rideshare-pickup', 'walk', 3, 'Follow rideshare pickup signs.', officialUnknown),
+      edge('ground-transportation', 'parking', 'walk', 3, 'Follow parking signs.', officialUnknown),
+    ],
+    schematic: ['terminal', 'security', 'gates', 'baggage-claim', 'ground-transportation'],
+    beforeMoveTip: 'Confirm your checkpoint, gate, and pickup area before leaving the terminal area.',
+    watchOutTip: 'Use posted airport signs and current airport guidance for exact gate and pickup locations.',
+    securityNotes: 'Gate-area movements are modeled as post-security; baggage claim, rental cars, rideshare, and parking are landside.',
+  }),
+
   BNA: mapAirport({
     code: 'BNA',
     name: 'Nashville International Airport',
@@ -132,4 +169,5 @@ export const topAirports = [
   ...baseTopAirports,
   { code: 'MEM', name: 'Memphis International Airport' },
   { code: 'BNA', name: 'Nashville International Airport' },
+  { code: 'AVL', name: 'Asheville Regional Airport' },
 ];

@@ -32,6 +32,7 @@ export const airportThemes = {
   MSP: { accent: '#0b668f', accentDark: '#073d59', accentSoft: '#e4f7ff', warmth: '#9cc9e8', glow: 'rgba(156, 201, 232, 0.32)', sky: '#eefaff', horizon: '#f4fbff', motif: 'lakes-north', icon: '❄️' },
   LGA: { accent: '#0a5c9f', accentDark: '#073a63', accentSoft: '#e7f3ff', warmth: '#f0c15a', glow: 'rgba(240, 193, 90, 0.28)', sky: '#eef8ff', horizon: '#fff7e5', motif: 'queens-gateway', icon: '🌉' },
   DTW: { accent: '#0b5b84', accentDark: '#07364f', accentSoft: '#e6f6ff', warmth: '#9aa7b1', glow: 'rgba(154, 167, 177, 0.3)', sky: '#eef8ff', horizon: '#f4f7fa', motif: 'motor-city', icon: '⚙️' },
+  AVL: { accent: '#0b5a8a', accentDark: '#072f52', accentSoft: '#e6f5ff', warmth: '#e2b14d', glow: 'rgba(226, 177, 77, 0.30)', sky: '#eef8ff', horizon: '#fff5e6', motif: 'blue-ridge', icon: '⛰️' },
 };
 
 export function getAirportTheme(code) {
