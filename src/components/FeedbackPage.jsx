@@ -85,11 +85,11 @@ const checklistFields = [
   ['screenshotsAttached', 'I attached screenshots if I found a visual issue, translation issue, blank screen, crash, or confusing route result.'],
 ];
 
-function Field({ label, name, type = 'text', placeholder = '', children, className = '' }) {
+function Field({ label, name, type = 'text', placeholder = '', required = false, children, className = '' }) {
   return (
     <label className={`feedback-field ${className}`.trim()}>
       <span>{label}</span>
-      {children || <input name={name} type={type} placeholder={placeholder} autoComplete="off" />}
+      {children || <input name={name} type={type} placeholder={placeholder} required={required} autoComplete="off" />}
     </label>
   );
 }
@@ -262,7 +262,7 @@ export default function FeedbackPage() {
           <h3 className="feedback-subhead">Tester and device information</h3>
           <div className="feedback-grid">
             <Field label="Tester name or initials" name="testerName" placeholder="Initials are okay" />
-            <Field label="Email (optional)" name="email" type="email" />
+            <Field label="Email (required)" name="email" type="email" required />
             <Field label="Date and time tested" name="dateTimeTested" type="datetime-local" />
             <SelectField label="Time zone" name="timeZone" options={selectOptions.timezone} placeholder="Select time zone" />
             <SelectField label="Device" name="device" options={selectOptions.device} placeholder="Select device" />
